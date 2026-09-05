@@ -370,6 +370,14 @@
           <tr><td class="py-2">ส่วนกลาง</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
           <tr class="border-t-2 font-bold bg-slate-50"><td class="py-2">ยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-base text-indigo-700" id="invTotalAmount"></td></tr>
         </table>
+        <!-- 🟢 โค้ดข้อมูลธนาคารที่ต้องเพิ่มเข้าไปใหม่ 🟢 -->
+        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-2 text-xs">
+          <p class="font-bold text-indigo-900 mb-1">ช่องทางการชำระเงิน:</p>
+          <p id="invBankName"></p>
+          <p class="font-bold text-sm">เลขที่บัญชี: <span class="text-indigo-700" id="invBankAcc"></span></p>
+          <p>ชื่อบัญชี: <span id="invBankOwner"></span></p>
+        </div>
+        <!-- ================================== -->
       </div>
       <div class="p-4 bg-slate-100 flex justify-between no-print">
         <button onclick="copyLineBill()" class="px-3 py-2 bg-emerald-600 text-white rounded text-xs">คัดลอกส่ง LINE</button>
