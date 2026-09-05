@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการหอพัก - Jacky Place</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printInvoiceArea, #printInvoiceArea * {
+        visibility: visible;
+      }
+      #printInvoiceArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+  <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-building text-2xl text-amber-400"></i>
+        <div>
+          <h1 class="text-xl font-bold leading-tight" id="headerDormName">Jacky Place</h1>
+          <p class="text-xs text-indigo-200" id="headerDormSub">222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+        <button onclick="exportDatabase()" class="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 rounded text-xs font-medium transition flex items-center gap-1.5">
+          <i class="fa-solid fa-download"></i> สำรองฐานข้อมูล (JSON)
+        </button>
+        <label class="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 rounded text-xs font-medium cursor-pointer transition flex items-center gap-1.5">
+          <i class="fa-solid fa-upload"></i> นำเข้าข้อมูล
+          <input type="file" id="importFile" class="hidden" accept=".json" onchange="importDatabase(event)">
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 mt-6">
+    <div class="flex border-b border-slate-300 space-x-2 sm:space-x-4 overflow-x-auto">
+      <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-indigo-700 text-indigo-700 flex items-center gap-2">
+        <i class="fa-solid fa-chart-pie"></i> แดชบอร์ด & สถานะห้อง
+      </button>
+      <button onclick="switchTab('rooms')" id="tab-btn-rooms" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-indigo-600 flex items-center gap-2">
+        <i class="fa-solid fa-door-closed"></i> ข้อมูลห้องพัก & ผู้เช่า
+      </button>
+      <button onclick="switchTab('meters')" id="tab-btn-meters" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-indigo-600 flex items-center gap-2">
+        <i class="fa-solid fa-bolt"></i> จดมิเตอร์ประจำเดือน (OCR)
+      </button>
+      <button onclick="switchTab('billing')" id="tab-btn-billing" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-indigo-600 flex items-center gap-2">
+        <i class="fa-solid fa-file-invoice-dollar"></i> ออกบิล & ชำระเงิน
+      </button>
+      <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-indigo-600 flex items-center gap-2">
+        <i class="fa-solid fa-gear"></i> ตั้งค่าหอพัก
+      </button>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <section id="tab-dashboard" class="tab-content">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 text-sm">จำนวนห้องทั้งหมด</span>
+            <span class="p-2 bg-indigo-50 text-indigo-600 rounded-lg text-lg"><i class="fa-solid fa-hotel"></i></span>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-2xl font-bold" id="dashTotalRooms">16</span>
+            <span class="text-xs text-slate-500">ห้อง</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 text-sm">สถานะห้องมีผู้เช่า</span>
+            <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-lg"><i class="fa-solid fa-user-check"></i></span>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-2xl font-bold text-emerald-600" id="dashOccupiedRooms">16</span>
+            <span class="text-xs text-slate-500">ห้อง (100%)</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 text-sm">ยอดเรียกเก็บรอบปัจจุบัน</span>
+            <span class="p-2 bg-amber-50 text-amber-600 rounded-lg text-lg"><i class="fa-solid fa-sack-dollar"></i></span>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-2xl font-bold text-amber-600" id="dashTotalBilled">0</span>
+            <span class="text-xs text-slate-500">บาท</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 text-sm">สถานะชำระเงินแล้ว</span>
+            <span class="p-2 bg-blue-50 text-blue-600 rounded-lg text-lg"><i class="fa-solid fa-receipt"></i></span>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-2xl font-bold text-blue-600" id="dashPaidCount">0/16</span>
+            <span class="text-xs text-slate-500">ห้อง</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+        <h3 class="font-bold text-base text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-grip text-indigo-600"></i> ผังห้องพักทั้งหมด (16 ห้อง)
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3" id="roomGridOverview">
+          </div>
+      </div>
+    </section>
+
+    <section id="tab-rooms" class="tab-content hidden">
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-200 gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">จัดการข้อมูลห้องพักและสัญญาเช่า</h2>
+            <p class="text-xs text-slate-500">แก้ไขอัตราค่าเช่า ข้อมูลผู้เช่า ทะเบียนรถ และเบอร์ติดต่อฉุกเฉิน</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+              <tr>
+                <th class="px-4 py-3">ห้อง</th>
+                <th class="px-4 py-3">ค่าห้อง (บาท)</th>
+                <th class="px-4 py-3">สถานะ</th>
+                <th class="px-4 py-3">ชื่อผู้เช่า</th>
+                <th class="px-4 py-3">เบอร์โทรศัพท์</th>
+                <th class="px-4 py-3">ทะเบียนรถ</th>
+                <th class="px-4 py-3">ติดต่อฉุกเฉิน</th>
+                <th class="px-4 py-3 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="tenantTableBody" class="divide-y divide-slate-200">
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-meters" class="tab-content hidden">
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-200 gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">บันทึกมิเตอร์น้ำ-ไฟ ประจำเดือน</h2>
+            <p class="text-xs text-slate-500">อัตราค่าไฟ 5 บาท/หน่วย | ค่าน้ำเหมาจ่าย 150 บาท/เดือน</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-slate-600">รอบเดือน:</label>
+            <input type="month" id="meterBillingMonth" class="px-3 py-1.5 border rounded-lg text-sm bg-slate-50" onchange="renderMetersTable()">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs">
+              <tr>
+                <th class="px-4 py-3">ห้อง</th>
+                <th class="px-4 py-3">ไฟเดือนก่อน</th>
+                <th class="px-4 py-3">ไฟเดือนนี้ (หน่วย)</th>
+                <th class="px-4 py-3">อัปโหลดรูปอ่านเลข (OCR)</th>
+                <th class="px-4 py-3">หน่วยที่ใช้</th>
+                <th class="px-4 py-3">รวมค่าไฟ (5 บ.)</th>
+                <th class="px-4 py-3">ค่าน้ำ (เหมาจ่าย)</th>
+              </tr>
+            </thead>
+            <tbody id="meterTableBody" class="divide-y divide-slate-200">
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-billing" class="tab-content hidden">
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-200 gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">รายการเรียกเก็บเงินค่าเช่าและสาธารณูปโภค</h2>
+            <p class="text-xs text-slate-500">สร้างบิล ส่ง LINE คัดลอกข้อความ หรือพิมพ์ใบแจ้งหนี้แบบสวยงาม</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-slate-600">รอบบิล:</label>
+            <input type="month" id="billingMonthSelector" class="px-3 py-1.5 border rounded-lg text-sm bg-slate-50" onchange="renderBillingList()">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs">
+              <tr>
+                <th class="px-4 py-3">ห้อง</th>
+                <th class="px-4 py-3">ผู้เช่า</th>
+                <th class="px-4 py-3">ค่าห้อง</th>
+                <th class="px-4 py-3">ค่าไฟ</th>
+                <th class="px-4 py-3">ค่าน้ำ</th>
+                <th class="px-4 py-3">ส่วนกลาง/จอดรถ</th>
+                <th class="px-4 py-3 font-bold text-indigo-900">รวมสุทธิ</th>
+                <th class="px-4 py-3">สถานะ</th>
+                <th class="px-4 py-3 text-center">การดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody id="billingTableBody" class="divide-y divide-slate-200">
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-settings" class="tab-content hidden">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+          <i class="fa-solid fa-sliders text-indigo-600"></i> ตั้งค่าข้อมูลหอพัก & อัตราค่าบริการ
+        </h2>
+        <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อหอพัก</label>
+            <input type="text" id="setDormName" class="w-full px-3 py-2 border rounded-lg text-sm" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">ที่อยู่หอพัก</label>
+            <textarea id="setDormAddress" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm" required></textarea>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อบัญชีรับเงิน</label>
+              <input type="text" id="setBankAccName" class="w-full px-3 py-2 border rounded-lg text-sm" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">ธนาคาร & สาขา</label>
+              <input type="text" id="setBankName" class="w-full px-3 py-2 border rounded-lg text-sm" required>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">เลขที่บัญชีธนาคาร</label>
+            <input type="text" id="setBankAccNumber" class="w-full px-3 py-2 border rounded-lg text-sm" required>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">อัตราค่าไฟ (บาท/หน่วย)</label>
+              <input type="number" step="0.5" id="setRateElectric" class="w-full px-3 py-2 border rounded-lg text-sm" required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">ค่าน้ำเหมาจ่าย (บาท/เดือน)</label>
+              <input type="number" id="setRateWater" class="w-full px-3 py-2 border rounded-lg text-sm" required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">ค่าส่วนกลาง+ที่จอดรถ (บาท)</label>
+              <input type="number" id="setRateCommon" class="w-full px-3 py-2 border rounded-lg text-sm" required>
+            </div>
+          </div>
+          <div class="pt-4 flex justify-end">
+            <button type="submit" class="px-5 py-2 bg-indigo-700 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition shadow">
+              <i class="fa-solid fa-floppy-disk mr-1"></i> บันทึกการตั้งค่า
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="tenantModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+      <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl">
+        <h3 class="font-bold text-slate-800 text-base" id="modalRoomTitle">แก้ไขข้อมูลห้องพัก</h3>
+        <button onclick="closeModal('tenantModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <form id="tenantForm" onsubmit="saveTenantData(event)" class="p-5 space-y-4">
+        <input type="hidden" id="editRoomId">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">ราคาค่าเช่าต่อเดือน (บาท)</label>
+            <input type="number" id="editRoomPrice" class="w-full px-3 py-1.5 border rounded-lg text-sm" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">สถานะห้อง</label>
+            <select id="editRoomStatus" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+              <option value="มีผู้เช่า">มีผู้เช่า (Occupied)</option>
+              <option value="ห้องว่าง">ห้องว่าง (Vacant)</option>
+              <option value="ปิดปรับปรุง">ปิดปรับปรุง (Maintenance)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3">
+          <h4 class="text-xs font-bold uppercase text-indigo-700 mb-2">ข้อมูลผู้เช่าและสัญญา</h4>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs text-slate-600 mb-1">ชื่อ-นามสกุล ผู้เช่า</label>
+              <input type="text" id="editTenantName" placeholder="ระบุชื่อผู้เช่า" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-slate-600 mb-1">เบอร์โทรศัพท์</label>
+                <input type="text" id="editTenantPhone" placeholder="08x-xxx-xxxx" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+              </div>
+              <div>
+                <label class="block text-xs text-slate-600 mb-1">เลขบัตรประชาชน</label>
+                <input type="text" id="editTenantIdCard" placeholder="เลข 13 หลัก" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-slate-600 mb-1">เงินมัดจำ/ประกัน (บาท)</label>
+                <input type="number" id="editDeposit" placeholder="0" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+              </div>
+              <div>
+                <label class="block text-xs text-slate-600 mb-1">วันเริ่มสัญญา</label>
+                <input type="date" id="editContractStart" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3">
+          <h4 class="text-xs font-bold uppercase text-indigo-700 mb-2">ข้อมูลเพิ่มเติมสำหรับหอพัก</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-600 mb-1">ทะเบียนรถ (ที่จอดรถ)</label>
+              <input type="text" id="editCarPlate" placeholder="เช่น กข 1234 ขอนแก่น" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-600 mb-1">เบอร์ติดต่อฉุกเฉิน</label>
+              <input type="text" id="editEmergencyContact" placeholder="ชื่อ และ เบอร์ติดต่อ" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+          <button type="button" onclick="closeModal('tenantModal')" class="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300">ยกเลิก</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-700 text-white text-xs font-semibold rounded-lg hover:bg-indigo-600">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="invoiceModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[95vh]">
+      <div class="p-4 bg-slate-800 text-white flex justify-between items-center no-print">
+        <h3 class="text-sm font-bold"><i class="fa-solid fa-file-invoice mr-2"></i> ใบแจ้งหนี้ค่าเช่าห้องพัก</h3>
+        <button onclick="closeModal('invoiceModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div id="printInvoiceArea" class="p-6 bg-white text-slate-800 overflow-y-auto">
+        <div class="text-center pb-4 border-b border-slate-300">
+          <h2 class="text-xl font-bold text-slate-900" id="invDormName">Jacky Place</h2>
+          <p class="text-xs text-slate-600" id="invDormAddress">222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น</p>
+          <h3 class="text-base font-bold text-indigo-900 mt-2 uppercase tracking-wide">ใบแจ้งค่าเช่าและสาธารณูปโภค</h3>
+          <p class="text-xs text-slate-500" id="invMonth">ประจำเดือน: -</p>
+        </div>
+
+        <div class="flex justify-between py-3 text-xs border-b border-slate-200">
+          <div>
+            <span class="text-slate-500">ห้องพัก:</span> <strong class="text-sm text-slate-800" id="invRoomNumber">-</strong>
+          </div>
+          <div>
+            <span class="text-slate-500">ผู้เช่า:</span> <strong class="text-sm text-slate-800" id="invTenantName">-</strong>
+          </div>
+        </div>
+
+        <table class="w-full text-xs mt-3 mb-4">
+          <thead>
+            <tr class="border-b border-slate-300 text-slate-500 text-left">
+              <th class="py-1">รายการ</th>
+              <th class="py-1 text-center">หน่วยที่ใช้</th>
+              <th class="py-1 text-right">จำนวนเงิน (บาท)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="py-2">ค่าเช่าห้องพัก (ห้องแอร์)</td>
+              <td class="py-2 text-center">-</td>
+              <td class="py-2 text-right font-medium" id="invRoomPrice">0.00</td>
+            </tr>
+            <tr>
+              <td class="py-2">
+                ค่าไฟฟ้า (5 บ./หน่วย)
+                <div class="text-[10px] text-slate-400" id="invMeterDetails">เลขมิเตอร์: 0 -> 0</div>
+              </td>
+              <td class="py-2 text-center" id="invElecUnits">0</td>
+              <td class="py-2 text-right font-medium" id="invElecCost">0.00</td>
+            </tr>
+            <tr>
+              <td class="py-2">ค่าน้ำประปา (เหมาจ่ายรายเดือน)</td>
+              <td class="py-2 text-center">เหมาจ่าย</td>
+              <td class="py-2 text-right font-medium" id="invWaterCost">150.00</td>
+            </tr>
+            <tr>
+              <td class="py-2">ค่าบริการส่วนกลาง + ที่จอดรถ</td>
+              <td class="py-2 text-center">เหมาจ่าย</td>
+              <td class="py-2 text-right font-medium" id="invCommonCost">300.00</td>
+            </tr>
+            <tr class="border-t-2 border-slate-800 font-bold text-sm bg-slate-50">
+              <td class="py-2 px-1 text-slate-900">รวมยอดที่ต้องชำระทั้งสิ้น</td>
+              <td class="py-2 text-center"></td>
+              <td class="py-2 px-1 text-right text-indigo-700 text-base" id="invTotalAmount">0.00</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-2 text-xs">
+          <p class="font-bold text-indigo-900 mb-1"><i class="fa-solid fa-building-columns mr-1"></i> ช่องทางการชำระเงิน:</p>
+          <p class="text-slate-700 font-medium" id="invBankName">ธนาคารกรุงไทย สาขาขอนแก่น</p>
+          <p class="text-slate-800 font-bold text-sm">เลขที่บัญชี: <span class="text-indigo-700 tracking-wider" id="invBankAcc">405-0-26573-7</span></p>
+          <p class="text-slate-700">ชื่อบัญชี: <span class="font-semibold" id="invBankOwner">นายธวัชชัย จันทร์ถาวร</span></p>
+          <p class="text-[11px] text-slate-500 mt-1 italic">* เมื่อชำระแล้วกรุณาส่งรูปสลิปหลักฐานการโอนทาง LINE เพื่อยืนยัน</p>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-100 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2 no-print">
+        <button onclick="copyLineBill()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow">
+          <i class="fa-brands fa-line text-sm"></i> คัดลอกข้อความส่ง LINE
+        </button>
+        <div class="flex gap-2">
+          <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-print"></i> พิมพ์ / บันทึก PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // โครงสร้างฐานข้อมูลตั้งต้น (DEFAULT DATABASE)
+    // -------------------------------------------------------------
+    const STORAGE_KEY = "JACKY_PLACE_DORM_DB_V1";
+
+    const defaultData = {
+      settings: {
+        dormName: "Jacky place",
+        dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น",
+        bankName: "ธนาคารกรุงไทย สาขาขอนแก่น",
+        bankAccNumber: "405-0-26573-7",
+        bankAccName: "นายธวัชชัย จันทร์ถาวร",
+        rateElectric: 5,
+        rateWater: 150,
+        rateCommon: 300
+      },
+      rooms: [
+        // 16 ห้อง แอร์ทั้งหมด: ชั้น 1 (101-108) เรท 3500, ชั้น 2 (201-208) เรท 3800
+        { id: "101", roomNumber: "101", price: 3500, status: "มีผู้เช่า", tenant: { name: "สมชาย ใจดี", phone: "081-234-5678", idCard: "", deposit: 3500, contractStart: "2026-01-01", carPlate: "กข 1111 ขอนแก่น", emergency: "แม่ 089-111-2222" }, lastMeter: 1240 },
+        { id: "102", roomNumber: "102", price: 3500, status: "มีผู้เช่า", tenant: { name: "กมลวรรณ สดใส", phone: "082-345-6789", idCard: "", deposit: 3500, contractStart: "2026-02-01", carPlate: "ขข 2222 ขอนแก่น", emergency: "" }, lastMeter: 850 },
+        { id: "103", roomNumber: "103", price: 3500, status: "มีผู้เช่า", tenant: { name: "อนุชา แก้วงาม", phone: "083-456-7890", idCard: "", deposit: 3500, contractStart: "2026-01-15", carPlate: "", emergency: "" }, lastMeter: 920 },
+        { id: "104", roomNumber: "104", price: 3500, status: "มีผู้เช่า", tenant: { name: "วิภาดา สุขใจ", phone: "084-567-8901", idCard: "", deposit: 3500, contractStart: "2026-03-01", carPlate: "คง 3333", emergency: "" }, lastMeter: 1510 },
+        { id: "105", roomNumber: "105", price: 3500, status: "มีผู้เช่า", tenant: { name: "ธีรเดช เจริญผล", phone: "085-678-9012", idCard: "", deposit: 3500, contractStart: "2026-01-01", carPlate: "", emergency: "" }, lastMeter: 740 },
+        { id: "106", roomNumber: "106", price: 3500, status: "มีผู้เช่า", tenant: { name: "ปิยะมาศ ภูมิดี", phone: "086-789-0123", idCard: "", deposit: 3500, contractStart: "2026-02-10", carPlate: "จจ 4444", emergency: "" }, lastMeter: 630 },
+        { id: "107", roomNumber: "107", price: 3500, status: "มีผู้เช่า", tenant: { name: "อดิศักดิ์ มั่นคง", phone: "087-890-1234", idCard: "", deposit: 3500, contractStart: "2026-01-01", carPlate: "", emergency: "" }, lastMeter: 1100 },
+        { id: "108", roomNumber: "108", price: 3500, status: "มีผู้เช่า", tenant: { name: "ณัฐพงษ์ ดวงแก้ว", phone: "088-901-2345", idCard: "", deposit: 3500, contractStart: "2026-04-01", carPlate: "ฉฉ 5555", emergency: "" }, lastMeter: 980 },
+        { id: "201", roomNumber: "201", price: 3800, status: "มีผู้เช่า", tenant: { name: "ชิดชนก วงศ์ษา", phone: "089-012-3456", idCard: "", deposit: 3800, contractStart: "2026-01-01", carPlate: "ชช 6666", emergency: "" }, lastMeter: 1420 },
+        { id: "202", roomNumber: "202", price: 3800, status: "มีผู้เช่า", tenant: { name: "ธนภัทร รุ่งเรือง", phone: "090-123-4567", idCard: "", deposit: 3800, contractStart: "2026-01-01", carPlate: "", emergency: "" }, lastMeter: 1150 },
+        { id: "203", roomNumber: "203", price: 3800, status: "มีผู้เช่า", tenant: { name: "ศศิธร บุญญา", phone: "091-234-5678", idCard: "", deposit: 3800, contractStart: "2026-02-15", carPlate: "ญญ 7777", emergency: "" }, lastMeter: 890 },
+        { id: "204", roomNumber: "204", price: 3800, status: "มีผู้เช่า", tenant: { name: "พงศกร รัตนผล", phone: "092-345-6789", idCard: "", deposit: 3800, contractStart: "2026-01-01", carPlate: "", emergency: "" }, lastMeter: 1670 },
+        { id: "205", roomNumber: "205", price: 3800, status: "มีผู้เช่า", tenant: { name: "กฤษณา ชัยชนะ", phone: "093-456-7890", idCard: "", deposit: 3800, contractStart: "2026-03-20", carPlate: "ดด 8888", emergency: "" }, lastMeter: 1040 },
+        { id: "206", roomNumber: "206", price: 3800, status: "มีผู้เช่า", tenant: { name: "วรเมธ เกียรติคุณ", phone: "094-567-8901", idCard: "", deposit: 3800, contractStart: "2026-01-01", carPlate: "", emergency: "" }, lastMeter: 780 },
+        { id: "207", roomNumber: "207", price: 3800, status: "มีผู้เช่า", tenant: { name: "จิราพร พรหมมา", phone: "095-678-9012", idCard: "", deposit: 3800, contractStart: "2026-02-01", carPlate: "ตต 9999", emergency: "" }, lastMeter: 1330 },
+        { id: "208", roomNumber: "208", price: 3800, status: "มีผู้เช่า", tenant: { name: "ศุภชัย สิทธิโชค", phone: "096-789-0123", idCard: "", deposit: 3800, contractStart: "2026-01-01", carPlate: "", emergency: "" }, lastMeter: 1210 }
+      ],
+      monthlyRecords: {} // โครงสร้าง: { "2026-09": { "101": { curMeter: 1290, paid: false } } }
+    };
+
+    let appData = {};
+
+    // เริ่มต้นระบบ
+    function initApp() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          appData = JSON.parse(saved);
+        } catch (e) {
+          appData = defaultData;
+        }
+      } else {
+        appData = defaultData;
+        saveToStorage();
+      }
+
+      // ตั้งค่าเดือนปัจจุบัน (YYYY-MM)
+      const now = new Date();
+      const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      document.getElementById('meterBillingMonth').value = curMonthStr;
+      document.getElementById('billingMonthSelector').value = curMonthStr;
+
+      updateHeaderAndSettings();
+      renderDashboard();
+      renderRoomsTable();
+      renderMetersTable();
+      renderBillingList();
+    }
+
+    function saveToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    function updateHeaderAndSettings() {
+      document.getElementById('headerDormName').textContent = appData.settings.dormName;
+      document.getElementById('headerDormSub').textContent = appData.settings.dormAddress;
+
+      // ในหน้าตั้งค่า
+      document.getElementById('setDormName').value = appData.settings.dormName;
+      document.getElementById('setDormAddress').value = appData.settings.dormAddress;
+      document.getElementById('setBankAccName').value = appData.settings.bankAccName;
+      document.getElementById('setBankName').value = appData.settings.bankName;
+      document.getElementById('setBankAccNumber').value = appData.settings.bankAccNumber;
+      document.getElementById('setRateElectric').value = appData.settings.rateElectric;
+      document.getElementById('setRateWater').value = appData.settings.rateWater;
+      document.getElementById('setRateCommon').value = appData.settings.rateCommon;
+    }
+
+    // สลับแท็บ
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('border-indigo-700', 'text-indigo-700');
+        el.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      activeBtn.classList.remove('border-transparent', 'text-slate-500');
+      activeBtn.classList.add('border-indigo-700', 'text-indigo-700');
+
+      if (tabId === 'dashboard') renderDashboard();
+      if (tabId === 'rooms') renderRoomsTable();
+      if (tabId === 'meters') renderMetersTable();
+      if (tabId === 'billing') renderBillingList();
+    }
+
+    // -------------------------------------------------------------
+    // 1. DASHBOARD
+    // -------------------------------------------------------------
+    function renderDashboard() {
+      const total = appData.rooms.length;
+      const occupied = appData.rooms.filter(r => r.status === 'มีผู้เช่า').length;
+      document.getElementById('dashTotalRooms').textContent = total;
+      document.getElementById('dashOccupiedRooms').textContent = occupied;
+
+      const mStr = document.getElementById('billingMonthSelector').value;
+      const mData = appData.monthlyRecords[mStr] || {};
+      let totalBilled = 0;
+      let paidCount = 0;
+
+      appData.rooms.forEach(r => {
+        if (r.status === 'มีผู้เช่า') {
+          const rec = mData[r.id] || {};
+          const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
+          const units = Math.max(0, curMeter - r.lastMeter);
+          const elecCost = units * appData.settings.rateElectric;
+          const total = r.price + elecCost + appData.settings.rateWater + appData.settings.rateCommon;
+          totalBilled += total;
+          if (rec.paid) paidCount++;
+        }
+      });
+
+      document.getElementById('dashTotalBilled').textContent = totalBilled.toLocaleString();
+      document.getElementById('dashPaidCount').textContent = `${paidCount}/${occupied}`;
+
+      // Render Grid
+      const grid = document.getElementById('roomGridOverview');
+      grid.innerHTML = '';
+      appData.rooms.forEach(r => {
+        const isOccupied = r.status === 'มีผู้เช่า';
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-lg border text-center cursor-pointer transition transform hover:-translate-y-1 ${
+          isOccupied ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-200 text-slate-400'
+        }`;
+        card.onclick = () => openEditRoomModal(r.id);
+        card.innerHTML = `
+          <div class="text-xs font-bold ${isOccupied ? 'text-indigo-900' : 'text-slate-500'}">ห้อง ${r.roomNumber}</div>
+          <div class="text-[11px] text-slate-600 mt-1">${r.price.toLocaleString()} บ.</div>
+          <div class="text-[10px] mt-1 font-semibold ${isOccupied ? 'text-emerald-600' : 'text-slate-400'}">${r.status}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 2. ข้อมูลห้องพัก & ผู้เช่า (ROOMS & TENANTS)
+    // -------------------------------------------------------------
+    function renderRoomsTable() {
+      const tbody = document.getElementById('tenantTableBody');
+      tbody.innerHTML = '';
+
+      appData.rooms.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-bold text-indigo-950">ห้อง ${r.roomNumber}</td>
+          <td class="px-4 py-3 font-semibold text-slate-700">${r.price.toLocaleString()}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-0.5 text-xs rounded-full ${
+              r.status === 'มีผู้เช่า' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+            }">${r.status}</span>
+          </td>
+          <td class="px-4 py-3">${r.tenant.name || '<span class="text-slate-400 italic">ยังไม่ระบุ</span>'}</td>
+          <td class="px-4 py-3">${r.tenant.phone || '-'}</td>
+          <td class="px-4 py-3">${r.tenant.carPlate || '-'}</td>
+          <td class="px-4 py-3 text-xs text-slate-600">${r.tenant.emergency || '-'}</td>
+          <td class="px-4 py-3 text-center">
+            <button onclick="openEditRoomModal('${r.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+              <i class="fa-solid fa-pen-to-square mr-1"></i>แก้ไข
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openEditRoomModal(roomId) {
+      const r = appData.rooms.find(x => x.id === roomId);
+      if (!r) return;
+      document.getElementById('editRoomId').value = r.id;
+      document.getElementById('modalRoomTitle').textContent = `แก้ไขข้อมูลห้อง ${r.roomNumber}`;
+      document.getElementById('editRoomPrice').value = r.price;
+      document.getElementById('editRoomStatus').value = r.status;
+      document.getElementById('editTenantName').value = r.tenant.name || '';
+      document.getElementById('editTenantPhone').value = r.tenant.phone || '';
+      document.getElementById('editTenantIdCard').value = r.tenant.idCard || '';
+      document.getElementById('editDeposit').value = r.tenant.deposit || '';
+      document.getElementById('editContractStart').value = r.tenant.contractStart || '';
+      document.getElementById('editCarPlate').value = r.tenant.carPlate || '';
+      document.getElementById('editEmergencyContact').value = r.tenant.emergency || '';
+
+      document.getElementById('tenantModal').classList.remove('hidden');
+    }
+
+    function saveTenantData(e) {
+      e.preventDefault();
+      const id = document.getElementById('editRoomId').value;
+      const r = appData.rooms.find(x => x.id === id);
+      if (r) {
+        r.price = parseFloat(document.getElementById('editRoomPrice').value) || 0;
+        r.status = document.getElementById('editRoomStatus').value;
+        r.tenant = {
+          name: document.getElementById('editTenantName').value,
+          phone: document.getElementById('editTenantPhone').value,
+          idCard: document.getElementById('editTenantIdCard').value,
+          deposit: parseFloat(document.getElementById('editDeposit').value) || 0,
+          contractStart: document.getElementById('editContractStart').value,
+          carPlate: document.getElementById('editCarPlate').value,
+          emergency: document.getElementById('editEmergencyContact').value
+        };
+        saveToStorage();
+        closeModal('tenantModal');
+        renderRoomsTable();
+        renderDashboard();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 3. จดมิเตอร์ & OCR อัปโหลดรูปภาพ
+    // -------------------------------------------------------------
+    function renderMetersTable() {
+      const monthStr = document.getElementById('meterBillingMonth').value;
+      const tbody = document.getElementById('meterTableBody');
+      tbody.innerHTML = '';
+
+      if (!appData.monthlyRecords[monthStr]) {
+        appData.monthlyRecords[monthStr] = {};
+      }
+      const curMonthData = appData.monthlyRecords[monthStr];
+
+      appData.rooms.forEach(r => {
+        const record = curMonthData[r.id] || { curMeter: r.lastMeter };
+        const prevMeter = r.lastMeter;
+        const curMeter = record.curMeter;
+        const units = Math.max(0, curMeter - prevMeter);
+        const elecCost = units * appData.settings.rateElectric;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-bold text-slate-800">ห้อง ${r.roomNumber}</td>
+          <td class="px-4 py-3 text-slate-500 font-mono">${prevMeter}</td>
+          <td class="px-4 py-3">
+            <input type="number" id="meterInput-${r.id}" value="${curMeter}" 
+              class="w-24 px-2 py-1 border rounded text-sm font-mono font-bold text-indigo-700 bg-white"
+              onchange="updateSingleMeter('${r.id}', this.value)">
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-1.5">
+              <label class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs cursor-pointer border flex items-center gap-1">
+                <i class="fa-solid fa-camera text-indigo-600"></i> สแกนรูปมิเตอร์
+                <input type="file" accept="image/*" class="hidden" onchange="handleOcrUpload(event, '${r.id}')">
+              </label>
+              <span id="ocrStatus-${r.id}" class="text-[11px] text-slate-400"></span>
+            </div>
+          </td>
+          <td class="px-4 py-3 font-mono text-slate-700 font-semibold" id="units-${r.id}">${units}</td>
+          <td class="px-4 py-3 font-bold text-slate-900" id="cost-${r.id}">${elecCost.toLocaleString()} บ.</td>
+          <td class="px-4 py-3 text-slate-600">${appData.settings.rateWater} บ. (เหมา)</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateSingleMeter(roomId, val) {
+      const monthStr = document.getElementById('meterBillingMonth').value;
+      const numVal = parseFloat(val) || 0;
+      if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
+      if (!appData.monthlyRecords[monthStr][roomId]) {
+        appData.monthlyRecords[monthStr][roomId] = { paid: false };
+      }
+      appData.monthlyRecords[monthStr][roomId].curMeter = numVal;
+
+      const r = appData.rooms.find(x => x.id === roomId);
+      const units = Math.max(0, numVal - r.lastMeter);
+      const cost = units * appData.settings.rateElectric;
+
+      document.getElementById(`units-${roomId}`).textContent = units;
+      document.getElementById(`cost-${roomId}`).textContent = `${cost.toLocaleString()} บ.`;
+      saveToStorage();
+    }
+
+    // ฟังก์ชัน OCR สแกนตัวเลขจากรูปภาพมิเตอร์ไฟ
+    async function handleOcrUpload(event, roomId) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const statusSpan = document.getElementById(`ocrStatus-${roomId}`);
+      statusSpan.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> กำลังอ่านรูป...`;
+
+      try {
+        const result = await Tesseract.recognize(file, 'eng');
+        const text = result.data.text;
+        // ดึงเฉพาะตัวเลขที่พบในภาพ
+        const matches = text.match(/\d+/g);
+        if (matches && matches.length > 0) {
+          // เลือกตัวเลขที่มีความยาวเหมาะสมของมิเตอร์ (เช่น 3-6 หลัก) หรือเลขแรก
+          const candidate = matches.find(m => m.length >= 3 && m.length <= 6) || matches[0];
+          document.getElementById(`meterInput-${roomId}`).value = candidate;
+          updateSingleMeter(roomId, candidate);
+          statusSpan.innerHTML = `<span class="text-emerald-600 font-medium"><i class="fa-solid fa-check"></i> อ่านได้: ${candidate}</span>`;
+        } else {
+          statusSpan.innerHTML = `<span class="text-amber-600">อ่านตัวเลขไม่ชัด กรุณากรอกเอง</span>`;
+        }
+      } catch (err) {
+        console.error(err);
+        statusSpan.innerHTML = `<span class="text-rose-500">OCR ขัดข้อง กรุณากรอกเลขเอง</span>`;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 4. ออกบิลและเรียกเก็บเงิน (BILLING & INVOICE)
+    // -------------------------------------------------------------
+    function renderBillingList() {
+      const monthStr = document.getElementById('billingMonthSelector').value;
+      const tbody = document.getElementById('billingTableBody');
+      tbody.innerHTML = '';
+
+      const curMonthData = appData.monthlyRecords[monthStr] || {};
+
+      appData.rooms.forEach(r => {
+        if (r.status !== 'มีผู้เช่า') return;
+
+        const record = curMonthData[r.id] || { curMeter: r.lastMeter, paid: false };
+        const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
+        const units = Math.max(0, curMeter - r.lastMeter);
+        const elecCost = units * appData.settings.rateElectric;
+        const waterCost = appData.settings.rateWater;
+        const commonCost = appData.settings.rateCommon;
+        const total = r.price + elecCost + waterCost + commonCost;
+        const isPaid = record.paid || false;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-bold text-slate-800">ห้อง ${r.roomNumber}</td>
+          <td class="px-4 py-3 font-medium">${r.tenant.name || '-'}</td>
+          <td class="px-4 py-3 font-mono">${r.price.toLocaleString()}</td>
+          <td class="px-4 py-3 font-mono">${elecCost.toLocaleString()} (${units} น.)</td>
+          <td class="px-4 py-3 font-mono">${waterCost.toLocaleString()}</td>
+          <td class="px-4 py-3 font-mono">${commonCost.toLocaleString()}</td>
+          <td class="px-4 py-3 font-mono font-bold text-indigo-700 text-base">${total.toLocaleString()}</td>
+          <td class="px-4 py-3">
+            <button onclick="togglePaidStatus('${monthStr}', '${r.id}')" class="px-2.5 py-1 text-xs rounded-full font-semibold transition ${
+              isPaid ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+            }">
+              ${isPaid ? '<i class="fa-solid fa-check-circle mr-1"></i>ชำระแล้ว' : '<i class="fa-solid fa-clock mr-1"></i>รอชำระ'}
+            </button>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <button onclick="openInvoiceModal('${r.id}')" class="px-3 py-1 bg-indigo-700 hover:bg-indigo-600 text-white rounded text-xs font-medium shadow-sm transition">
+              <i class="fa-solid fa-eye mr-1"></i>ดูบิล / ส่ง LINE
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function togglePaidStatus(monthStr, roomId) {
+      if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
+      if (!appData.monthlyRecords[monthStr][roomId]) {
+        const r = appData.rooms.find(x => x.id === roomId);
+        appData.monthlyRecords[monthStr][roomId] = { curMeter: r.lastMeter, paid: false };
+      }
+      appData.monthlyRecords[monthStr][roomId].paid = !appData.monthlyRecords[monthStr][roomId].paid;
+      saveToStorage();
+      renderBillingList();
+      renderDashboard();
+    }
+
+    // เปิด Modal ดูใบแจ้งหนี้
+    let currentInvoiceData = {};
+    function openInvoiceModal(roomId) {
+      const monthStr = document.getElementById('billingMonthSelector').value;
+      const r = appData.rooms.find(x => x.id === roomId);
+      if (!r) return;
+
+      const curMonthData = appData.monthlyRecords[monthStr] || {};
+      const record = curMonthData[r.id] || { curMeter: r.lastMeter };
+      const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
+      const units = Math.max(0, curMeter - r.lastMeter);
+      const elecCost = units * appData.settings.rateElectric;
+      const waterCost = appData.settings.rateWater;
+      const commonCost = appData.settings.rateCommon;
+      const total = r.price + elecCost + waterCost + commonCost;
+
+      currentInvoiceData = {
+        dormName: appData.settings.dormName,
+        dormAddress: appData.settings.dormAddress,
+        monthStr: monthStr,
+        roomNumber: r.roomNumber,
+        tenantName: r.tenant.name || "ผู้เช่าห้อง " + r.roomNumber,
+        roomPrice: r.price,
+        prevMeter: r.lastMeter,
+        curMeter: curMeter,
+        units: units,
+        elecCost: elecCost,
+        waterCost: waterCost,
+        commonCost: commonCost,
+        total: total,
+        bankName: appData.settings.bankName,
+        bankAcc: appData.settings.bankAccNumber,
+        bankOwner: appData.settings.bankAccName
+      };
+
+      // ใส่ค่าลงใน Modal
+      document.getElementById('invDormName').textContent = currentInvoiceData.dormName;
+      document.getElementById('invDormAddress').textContent = currentInvoiceData.dormAddress;
+      document.getElementById('invMonth').textContent = `ประจำรอบเดือน: ${monthStr}`;
+      document.getElementById('invRoomNumber').textContent = currentInvoiceData.roomNumber;
+      document.getElementById('invTenantName').textContent = currentInvoiceData.tenantName;
+      document.getElementById('invRoomPrice').textContent = currentInvoiceData.roomPrice.toLocaleString() + ".00";
+      document.getElementById('invMeterDetails').textContent = `เลขมิเตอร์: ${currentInvoiceData.prevMeter} ➔ ${currentInvoiceData.curMeter} (รวม ${units} หน่วย)`;
+      document.getElementById('invElecUnits').textContent = units;
+      document.getElementById('invElecCost').textContent = currentInvoiceData.elecCost.toLocaleString() + ".00";
+      document.getElementById('invWaterCost').textContent = currentInvoiceData.waterCost.toLocaleString() + ".00";
+      document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString() + ".00";
+      document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString() + " บาท";
+
+      document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
+      document.getElementById('invBankAcc').textContent = currentInvoiceData.bankAcc;
+      document.getElementById('invBankOwner').textContent = currentInvoiceData.bankOwner;
+
+      document.getElementById('invoiceModal').classList.remove('hidden');
+    }
+
+    // คัดลอกข้อความสรุปสำหรับส่งทาง LINE
+    function copyLineBill() {
+      const d = currentInvoiceData;
+      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}
+ประจำเดือน: ${d.monthStr}
+ห้องพัก: ${d.roomNumber} (ผู้เช่า: ${d.tenantName})
+━━━━━━━━━━━━━━━━━━━
+1. ค่าเช่าห้องพัก: ${d.roomPrice.toLocaleString()} บาท
+2. ค่าไฟฟ้า (${d.units} หน่วย @ 5 บ.): ${d.elecCost.toLocaleString()} บาท
+   (มิเตอร์: ${d.prevMeter} ➔ ${d.curMeter})
+3. ค่าน้ำประปา (เหมาจ่าย): ${d.waterCost.toLocaleString()} บาท
+4. ค่าส่วนกลาง + ที่จอดรถ: ${d.commonCost.toLocaleString()} บาท
+━━━━━━━━━━━━━━━━━━━
+💰 รวมยอดชำระทั้งสิ้น: ${d.total.toLocaleString()} บาท
+━━━━━━━━━━━━━━━━━━━
+💳 ช่องทางการชำระเงิน:
+${d.bankName}
+เลขที่บัญชี: ${d.bankAcc}
+ชื่อบัญชี: ${d.bankOwner}
+
+*เมื่อโอนแล้วกรุณาส่งรูปสลิปเพื่อยืนยัน ขอบคุณครับ 🙏`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert("คัดลอกข้อความบิลเรียบร้อย! สามารถวางส่งใน LINE ได้ทันที");
+      }).catch(err => {
+        alert("ไม่สามารถคัดลอกได้อัตโนมัติ กรุณาลองใหม่อีกครั้ง");
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 5. ตั้งค่าหอพัก (SETTINGS)
+    // -------------------------------------------------------------
+    function saveSettings(e) {
+      e.preventDefault();
+      appData.settings.dormName = document.getElementById('setDormName').value;
+      appData.settings.dormAddress = document.getElementById('setDormAddress').value;
+      appData.settings.bankAccName = document.getElementById('setBankAccName').value;
+      appData.settings.bankName = document.getElementById('setBankName').value;
+      appData.settings.bankAccNumber = document.getElementById('setBankAccNumber').value;
+      appData.settings.rateElectric = parseFloat(document.getElementById('setRateElectric').value) || 5;
+      appData.settings.rateWater = parseFloat(document.getElementById('setRateWater').value) || 150;
+      appData.settings.rateCommon = parseFloat(document.getElementById('setRateCommon').value) || 300;
+
+      saveToStorage();
+      updateHeaderAndSettings();
+      alert("บันทึกการตั้งค่าเรียบร้อยแล้ว!");
+    }
+
+    // -------------------------------------------------------------
+    // การสำรองและการนำเข้าฐานข้อมูล (BACKUP & IMPORT)
+    // -------------------------------------------------------------
+    function exportDatabase() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `jacky_place_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function importDatabase(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.rooms && imported.settings) {
+            appData = imported;
+            saveToStorage();
+            initApp();
+            alert("นำเข้าฐานข้อมูลสำเร็จ ข้อมูลถูกอัปเดตเรียบร้อยแล้ว!");
+          } else {
+            alert("ไฟล์ JSON ไม่ถูกต้องตามรูปแบบของระบบ");
+          }
+        } catch (err) {
+          alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    // รันตอนโหลดหน้าเว็บ
+    window.onload = initApp;
+  </script>
+</body>
+</html>
