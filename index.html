@@ -71,10 +71,17 @@
             </p>
           </div>
         </div>
-        <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+<div class="flex items-center space-x-2 mt-2 sm:mt-0">
           <button onclick="handleFirebaseLogout()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 rounded text-xs font-medium transition flex items-center gap-1.5">
             <i class="fa-solid fa-power-off"></i> ออกจากระบบ
           </button>
+          <button onclick="exportDatabase()" class="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 rounded text-xs font-medium transition flex items-center gap-1.5" title="สำรองเฉพาะข้อมูลข้อความ">
+            <i class="fa-solid fa-download"></i> สำรองข้อมูล
+          </button>
+          <label class="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 rounded text-xs font-medium cursor-pointer transition flex items-center gap-1.5">
+            <i class="fa-solid fa-upload"></i> นำเข้า
+            <input type="file" id="importFile" class="hidden" accept=".json" onchange="importDatabase(event)">
+          </label>
         </div>
       </div>
     </header>
