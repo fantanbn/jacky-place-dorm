@@ -173,7 +173,6 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- ซ้าย: รายรับ -->
             <div>
               <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 h-full relative">
                 <h3 class="font-bold text-blue-900 mb-4 border-b border-blue-200 pb-2"><i class="fa-solid fa-arrow-down text-blue-600"></i> สรุปรายรับ (Income)</h3>
@@ -189,7 +188,6 @@
               </div>
             </div>
 
-            <!-- ขวา: ฟอร์มรายจ่าย -->
             <div>
               <div class="bg-rose-50 border border-rose-100 rounded-xl p-5">
                 <h3 class="font-bold text-rose-900 mb-4 border-b border-rose-200 pb-2 flex justify-between items-center">
@@ -281,11 +279,28 @@
       <div class="p-6">
         <form id="tenantForm" onsubmit="saveTenantData(event)">
           <input type="hidden" id="editRoomId">
-          <!-- ส่วนข้อมูลทั่วไป -->
+          <!-- ข้อมูลทั่วไป -->
           <div class="grid grid-cols-2 gap-4 mb-4">
             <div><label class="text-xs font-semibold mb-1 block">ราคาห้องเต็มเดือน</label><input type="number" id="editRoomPrice" class="w-full border p-2 rounded text-sm" required></div>
             <div><label class="text-xs font-semibold mb-1 block">สถานะ</label><select id="editRoomStatus" class="w-full border p-2 rounded text-sm"><option value="มีผู้เช่า">มีผู้เช่า</option><option value="ห้องว่าง">ห้องว่าง</option></select></div>
           </div>
+
+          <!-- ระบบคำนวณส่วนลด/เปอร์เซ็นต์ (ใหม่) -->
+          <div class="grid grid-cols-2 gap-4 mb-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+            <div class="col-span-2"><h4 class="text-xs font-bold text-indigo-900"><i class="fa-solid fa-percent"></i> ตั้งค่าสัดส่วนค่าน้ำ-ไฟ เฉพาะห้องนี้</h4></div>
+            <div>
+              <label class="text-xs mb-1 block font-bold text-indigo-800">คิดค่าไฟฟ้า (%)</label>
+              <input type="number" id="editElecPercent" class="w-full border border-indigo-200 p-2 rounded text-sm bg-white" placeholder="100">
+            </div>
+            <div>
+              <label class="text-xs mb-1 block font-bold text-indigo-800">คิดค่าน้ำประปา (%)</label>
+              <input type="number" id="editWaterPercent" class="w-full border border-indigo-200 p-2 rounded text-sm bg-white" placeholder="100">
+            </div>
+            <div class="col-span-2 text-[10px] text-indigo-600 leading-tight">
+              * ค่าปกติคือ 100 หากหารครึ่ง(แชร์ห้อง) ให้ใส่ 50 หากต้องการบวกเพิ่มให้ใส่มากกว่า 100 (เช่น 110 คือบวกเพิ่ม 10%) หากให้ฟรีใส่ 0
+            </div>
+          </div>
+
           <hr class="mb-4">
           
           <!-- วันที่ย้ายเข้า-ออก -->
@@ -367,7 +382,6 @@
                 </div>
               </div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-2">* รูปภาพเอกสารจะถูกเก็บไว้ในเครื่องคอมพิวเตอร์ของคุณเท่านั้น</p>
           </div>
 
           <div class="flex justify-end gap-2 mt-6 pt-4 border-t sticky bottom-0 bg-white">
@@ -404,7 +418,7 @@
             <td class="py-2">ค่าไฟฟ้า (5 บ./น.) <div class="text-[10px] text-slate-400" id="invMeterDetails"></div></td>
             <td class="py-2 text-center" id="invElecUnits"></td><td class="py-2 text-right" id="invElecCost"></td>
           </tr>
-          <tr><td class="py-2">ค่าน้ำประปา</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invWaterCost"></td></tr>
+          <tr><td class="py-2" id="invWaterLabel">ค่าน้ำประปา</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invWaterCost"></td></tr>
           <tr><td class="py-2">ค่าส่วนกลาง+ที่จอดรถ</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
           <tr class="border-t-2 border-slate-800 font-bold bg-slate-50"><td class="py-2">รวมยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-indigo-700 text-base" id="invTotalAmount"></td></tr>
         </table>
@@ -518,8 +532,7 @@
     });
 
     // ================= 3. โค้ดฐานข้อมูลหลัก (Rooms & Settings) =================
-    // ขยับ V5 เพื่อรองรับฟิลด์วันที่เข้า-ออกเต็มรูปแบบ
-    const STORAGE_KEY = "JACKY_PLACE_DORM_DB_V5";
+    const STORAGE_KEY = "JACKY_PLACE_DORM_DB_V6";
     let appData = {};
     const defaultData = {
       settings: {
@@ -527,40 +540,40 @@
         bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300
       },
       rooms: [
-        { id: "1", roomNumber: "1", price: 3500, status: "มีผู้เช่า", tenant: { name: "สมชาย ใจดี", nickname: "ชาย", phone: "081-234-5678", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "กข 1111", emergency: "" }, lastMeter: 1240 },
-        { id: "2", roomNumber: "2", price: 3500, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 850 },
-        { id: "3", roomNumber: "3", price: 3500, status: "มีผู้เช่า", tenant: { name: "อนุชา แก้วงาม", nickname: "ชา", phone: "083-456-7890", idCard: "", deposit: 3500, moveIn: "2026-01-15", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 920 },
-        { id: "4", roomNumber: "4", price: 3500, status: "มีผู้เช่า", tenant: { name: "วิภาดา สุขใจ", nickname: "วิ", phone: "084-567-8901", idCard: "", deposit: 3500, moveIn: "2026-03-01", moveOut: "", carPlate: "คง 3333", emergency: "" }, lastMeter: 1510 },
-        { id: "5", roomNumber: "5", price: 3500, status: "มีผู้เช่า", tenant: { name: "ธีรเดช เจริญผล", nickname: "เดช", phone: "085-678-9012", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 740 },
-        { id: "6", roomNumber: "6", price: 3500, status: "มีผู้เช่า", tenant: { name: "ปิยะมาศ ภูมิดี", nickname: "มาศ", phone: "086-789-0123", idCard: "", deposit: 3500, moveIn: "2026-02-10", moveOut: "", carPlate: "จจ 4444", emergency: "" }, lastMeter: 630 },
-        { id: "7", roomNumber: "7", price: 3500, status: "มีผู้เช่า", tenant: { name: "อดิศักดิ์ มั่นคง", nickname: "เอ", phone: "087-890-1234", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1100 },
-        { id: "8", roomNumber: "8", price: 3500, status: "มีผู้เช่า", tenant: { name: "ณัฐพงษ์ ดวงแก้ว", nickname: "นัท", phone: "088-901-2345", idCard: "", deposit: 3500, moveIn: "2026-04-01", moveOut: "", carPlate: "ฉฉ 5555", emergency: "" }, lastMeter: 980 },
-        { id: "9", roomNumber: "9", price: 3800, status: "มีผู้เช่า", tenant: { name: "ชิดชนก วงศ์ษา", nickname: "นก", phone: "089-012-3456", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "ชช 6666", emergency: "" }, lastMeter: 1420 },
-        { id: "10", roomNumber: "10", price: 3800, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1150 },
-        { id: "11", roomNumber: "11", price: 3800, status: "มีผู้เช่า", tenant: { name: "ศศิธร บุญญา", nickname: "ศศิ", phone: "091-234-5678", idCard: "", deposit: 3800, moveIn: "2026-02-15", moveOut: "", carPlate: "ญญ 7777", emergency: "" }, lastMeter: 890 },
-        { id: "12", roomNumber: "12", price: 3800, status: "มีผู้เช่า", tenant: { name: "พงศกร รัตนผล", nickname: "พงศ", phone: "092-345-6789", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1670 },
-        { id: "14", roomNumber: "14", price: 3800, status: "มีผู้เช่า", tenant: { name: "กฤษณา ชัยชนะ", nickname: "กฤษ", phone: "093-456-7890", idCard: "", deposit: 3800, moveIn: "2026-03-20", moveOut: "", carPlate: "ดด 8888", emergency: "" }, lastMeter: 1040 },
-        { id: "15", roomNumber: "15", price: 3800, status: "มีผู้เช่า", tenant: { name: "วรเมธ เกียรติคุณ", nickname: "เมธ", phone: "094-567-8901", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 780 },
-        { id: "16", roomNumber: "16", price: 3800, status: "มีผู้เช่า", tenant: { name: "จิราพร พรหมมา", nickname: "พร", phone: "095-678-9012", idCard: "", deposit: 3800, moveIn: "2026-02-01", moveOut: "", carPlate: "ตต 9999", emergency: "" }, lastMeter: 1330 },
-        { id: "17", roomNumber: "17", price: 3800, status: "มีผู้เช่า", tenant: { name: "ศุภชัย สิทธิโชค", nickname: "ชัย", phone: "096-789-0123", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1210 }
+        { id: "1", roomNumber: "1", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "สมชาย ใจดี", nickname: "ชาย", phone: "081-234-5678", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "กข 1111", emergency: "" }, lastMeter: 1240 },
+        { id: "2", roomNumber: "2", price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 850 },
+        { id: "3", roomNumber: "3", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "อนุชา แก้วงาม", nickname: "ชา", phone: "083-456-7890", idCard: "", deposit: 3500, moveIn: "2026-01-15", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 920 },
+        { id: "4", roomNumber: "4", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "วิภาดา สุขใจ", nickname: "วิ", phone: "084-567-8901", idCard: "", deposit: 3500, moveIn: "2026-03-01", moveOut: "", carPlate: "คง 3333", emergency: "" }, lastMeter: 1510 },
+        { id: "5", roomNumber: "5", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ธีรเดช เจริญผล", nickname: "เดช", phone: "085-678-9012", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 740 },
+        { id: "6", roomNumber: "6", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ปิยะมาศ ภูมิดี", nickname: "มาศ", phone: "086-789-0123", idCard: "", deposit: 3500, moveIn: "2026-02-10", moveOut: "", carPlate: "จจ 4444", emergency: "" }, lastMeter: 630 },
+        { id: "7", roomNumber: "7", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "อดิศักดิ์ มั่นคง", nickname: "เอ", phone: "087-890-1234", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1100 },
+        { id: "8", roomNumber: "8", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ณัฐพงษ์ ดวงแก้ว", nickname: "นัท", phone: "088-901-2345", idCard: "", deposit: 3500, moveIn: "2026-04-01", moveOut: "", carPlate: "ฉฉ 5555", emergency: "" }, lastMeter: 980 },
+        { id: "9", roomNumber: "9", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ชิดชนก วงศ์ษา", nickname: "นก", phone: "089-012-3456", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "ชช 6666", emergency: "" }, lastMeter: 1420 },
+        { id: "10", roomNumber: "10", price: 3800, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1150 },
+        { id: "11", roomNumber: "11", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ศศิธร บุญญา", nickname: "ศศิ", phone: "091-234-5678", idCard: "", deposit: 3800, moveIn: "2026-02-15", moveOut: "", carPlate: "ญญ 7777", emergency: "" }, lastMeter: 890 },
+        { id: "12", roomNumber: "12", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "พงศกร รัตนผล", nickname: "พงศ", phone: "092-345-6789", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1670 },
+        { id: "14", roomNumber: "14", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "กฤษณา ชัยชนะ", nickname: "กฤษ", phone: "093-456-7890", idCard: "", deposit: 3800, moveIn: "2026-03-20", moveOut: "", carPlate: "ดด 8888", emergency: "" }, lastMeter: 1040 },
+        { id: "15", roomNumber: "15", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "วรเมธ เกียรติคุณ", nickname: "เมธ", phone: "094-567-8901", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 780 },
+        { id: "16", roomNumber: "16", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "จิราพร พรหมมา", nickname: "พร", phone: "095-678-9012", idCard: "", deposit: 3800, moveIn: "2026-02-01", moveOut: "2026-09-15", carPlate: "ตต 9999", emergency: "" }, lastMeter: 1330 },
+        { id: "17", roomNumber: "17", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ศุภชัย สิทธิโชค", nickname: "ชัย", phone: "096-789-0123", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1210 }
       ],
       monthlyRecords: {},
       monthlyExpenses: {}
     };
 
     function initApp() {
-      // โค้ดสำหรับพยายามแปลงข้อมูลเก่า(V4) มาเป็น V5 (ถ้ามี)
-      const savedV4 = localStorage.getItem("JACKY_PLACE_DORM_DB_V4");
-      const savedV5 = localStorage.getItem(STORAGE_KEY);
+      // พยายามโหลด V5 เพื่อย้ายข้อมูลมา V6 อัตโนมัติ (เผื่อผู้ใช้มีของเก่า)
+      const savedV5 = localStorage.getItem("JACKY_PLACE_DORM_DB_V5");
+      const savedV6 = localStorage.getItem(STORAGE_KEY);
       
-      if (savedV5) {
+      if (savedV6) {
+          appData = JSON.parse(savedV6);
+      } else if (savedV5) {
           appData = JSON.parse(savedV5);
-      } else if (savedV4) {
-          appData = JSON.parse(savedV4);
-          // แปลง contractStart ให้เป็น moveIn 
+          // ตั้งค่าเปอเซนต์เริ่มต้นให้ V5
           appData.rooms.forEach(r => {
-              if (r.tenant.contractStart && !r.tenant.moveIn) r.tenant.moveIn = r.tenant.contractStart;
-              if (r.tenant.moveOut === undefined) r.tenant.moveOut = "";
+              if (r.elecPercent === undefined) r.elecPercent = 100;
+              if (r.waterPercent === undefined) r.waterPercent = 100;
           });
           saveToStorage();
       } else {
@@ -585,32 +598,28 @@
     
     function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
     
-    // ฟังก์ชันคำนวณค่าเช่าห้องตามสัดส่วน (Pro-rata Rent)
     function calculateRoomRent(room, monthStr) {
       if (room.status !== 'มีผู้เช่า') return { rent: 0, days: 0, totalDays: 30 };
       
       let [y, m] = monthStr.split('-');
       y = parseInt(y); m = parseInt(m);
       
-      let totalDays = new Date(y, m, 0).getDate(); // จำนวนวันทั้งหมดในเดือนนั้น
-      let startDay = 1;
-      let endDay = totalDays;
+      let totalDays = new Date(y, m, 0).getDate();
+      let startDay = 1; let endDay = totalDays;
 
       let moveInDate = room.tenant.moveIn ? new Date(room.tenant.moveIn) : null;
       let moveOutDate = room.tenant.moveOut ? new Date(room.tenant.moveOut) : null;
 
-      // ตรวจสอบวันที่ย้ายเข้า
       if (moveInDate && moveInDate.getFullYear() === y && (moveInDate.getMonth() + 1) === m) {
           startDay = moveInDate.getDate();
       } else if (moveInDate && (moveInDate.getFullYear() > y || (moveInDate.getFullYear() === y && (moveInDate.getMonth() + 1) > m))) {
-          return { rent: 0, days: 0, totalDays }; // ยังไม่ย้ายเข้าในรอบบิลนี้
+          return { rent: 0, days: 0, totalDays }; 
       }
 
-      // ตรวจสอบวันที่ย้ายออก
       if (moveOutDate && moveOutDate.getFullYear() === y && (moveOutDate.getMonth() + 1) === m) {
           endDay = moveOutDate.getDate();
       } else if (moveOutDate && (moveOutDate.getFullYear() < y || (moveOutDate.getFullYear() === y && (moveOutDate.getMonth() + 1) < m))) {
-          return { rent: 0, days: 0, totalDays }; // ย้ายออกไปก่อนหน้านี้แล้ว
+          return { rent: 0, days: 0, totalDays }; 
       }
 
       let daysStayed = endDay - startDay + 1;
@@ -619,16 +628,13 @@
 
       let actualRent = room.price;
       if (daysStayed < totalDays && daysStayed > 0) {
-          // คำนวณแบบหารเฉลี่ย
           actualRent = Math.round((room.price / totalDays) * daysStayed);
       } else if (daysStayed === 0) {
           actualRent = 0;
       }
-
       return { rent: actualRent, days: daysStayed, totalDays };
     }
 
-    // ฟังก์ชันช่วยจัด Format วันที่ (DD/MM/YYYY)
     function formatDateTH(dateStr) {
       if (!dateStr) return '-';
       const [y, m, d] = dateStr.split('-');
@@ -685,7 +691,13 @@
           
           const rentData = calculateRoomRent(r, mStr);
           if (rentData.days > 0) {
-            const total = rentData.rent + (units * appData.settings.rateElectric) + appData.settings.rateWater + appData.settings.rateCommon;
+            const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
+            const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
+            
+            const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
+            const waterCost = appData.settings.rateWater * (waterPercent / 100);
+
+            const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon;
             totalBilled += total;
             if (rec.paid) paidCount++;
           }
@@ -698,7 +710,7 @@
       grid.innerHTML = '';
       appData.rooms.forEach(r => {
         const isOccupied = r.status === 'มีผู้เช่า';
-        const isMovingOut = isOccupied && r.tenant.moveOut; // เช็คว่ามีแจ้งย้ายออกหรือไม่
+        const isMovingOut = isOccupied && r.tenant.moveOut; 
 
         let nameDisplay = '-';
         if (isOccupied) {
@@ -707,7 +719,6 @@
             else nameDisplay = 'ไม่ระบุชื่อ';
         }
 
-        // เปลี่ยนสีกรอบถ้าแจ้งย้ายออก
         const bgClass = isMovingOut ? 'bg-rose-50 border-rose-400 shadow-md' : (isOccupied ? 'bg-indigo-50 border-indigo-200 hover:shadow-md' : 'bg-slate-50 border-slate-200 opacity-70');
         const textClass = isMovingOut ? 'text-rose-900' : (isOccupied ? 'text-indigo-900' : 'text-slate-500');
         const nameClass = isMovingOut ? 'text-rose-700' : 'text-indigo-600';
@@ -791,6 +802,11 @@
       document.getElementById('editRoomId').value = r.id;
       document.getElementById('editRoomPrice').value = r.price;
       document.getElementById('editRoomStatus').value = r.status;
+      
+      // การตั้งค่าเปอร์เซ็นต์
+      document.getElementById('editElecPercent').value = r.elecPercent !== undefined ? r.elecPercent : 100;
+      document.getElementById('editWaterPercent').value = r.waterPercent !== undefined ? r.waterPercent : 100;
+
       document.getElementById('editTenantName').value = r.tenant.name || '';
       document.getElementById('editTenantNickname').value = r.tenant.nickname || '';
       document.getElementById('editTenantPhone').value = r.tenant.phone || '';
@@ -838,6 +854,12 @@
       const r = appData.rooms.find(x => x.id === id);
       r.price = parseFloat(document.getElementById('editRoomPrice').value) || 0;
       r.status = document.getElementById('editRoomStatus').value;
+
+      let ep = parseFloat(document.getElementById('editElecPercent').value);
+      r.elecPercent = isNaN(ep) ? 100 : ep;
+      let wp = parseFloat(document.getElementById('editWaterPercent').value);
+      r.waterPercent = isNaN(wp) ? 100 : wp;
+
       r.tenant.name = document.getElementById('editTenantName').value;
       r.tenant.nickname = document.getElementById('editTenantNickname').value;
       r.tenant.phone = document.getElementById('editTenantPhone').value;
@@ -861,7 +883,6 @@
       appData.rooms.forEach(r => {
         if(r.status !== 'มีผู้เช่า') return;
 
-        // ไม่ต้องจดมิเตอร์ถ้าเดือนนี้ห้องว่างหรือไม่มีคนอยู่แล้ว
         const rentData = calculateRoomRent(r, monthStr);
         if(rentData.days === 0) return;
 
@@ -869,7 +890,10 @@
         const prevMeter = r.lastMeter;
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
         const units = Math.max(0, curMeter - prevMeter);
-        const elecCost = units * appData.settings.rateElectric;
+        
+        const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
+        const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
+        const percentBadge = elecPercent !== 100 ? ` <span class="text-rose-500 text-[10px]">(${elecPercent}%)</span>` : '';
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
@@ -883,7 +907,7 @@
               </div>
             </td>
             <td class="px-4 py-2 font-mono font-semibold" id="units-${r.id}">${units}</td>
-            <td class="px-4 py-2 font-bold" id="cost-${r.id}">${elecCost.toLocaleString()} บ.</td>
+            <td class="px-4 py-2 font-bold" id="cost-${r.id}">${elecCost.toLocaleString()} บ.${percentBadge}</td>
           </tr>
         `;
       });
@@ -895,10 +919,14 @@
       if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
       if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = { paid: false };
       appData.monthlyRecords[monthStr][roomId].curMeter = numVal;
+      
       const r = appData.rooms.find(x => x.id === roomId);
       const units = Math.max(0, numVal - r.lastMeter);
+      const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
+      const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
+
       document.getElementById(`units-${roomId}`).textContent = units;
-      document.getElementById(`cost-${roomId}`).textContent = `${(units * appData.settings.rateElectric).toLocaleString()} บ.`;
+      document.getElementById(`cost-${roomId}`).innerHTML = `${elecCost.toLocaleString()} บ.` + (elecPercent !== 100 ? ` <span class="text-rose-500 text-[10px]">(${elecPercent}%)</span>` : '');
       saveToStorage();
     }
 
@@ -932,27 +960,36 @@
         if (r.status !== 'มีผู้เช่า') return;
         
         const rentData = calculateRoomRent(r, monthStr);
-        if(rentData.days === 0) return; // ไม่มียอดเรียกเก็บในเดือนนี้
+        if(rentData.days === 0) return; 
 
         const record = curMonthData[r.id] || { curMeter: r.lastMeter, paid: false };
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
         const units = Math.max(0, curMeter - r.lastMeter);
-        const elecCost = units * appData.settings.rateElectric;
-        const total = rentData.rent + elecCost + appData.settings.rateWater + appData.settings.rateCommon;
+        
+        const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
+        const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
+        const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
+        const waterCost = appData.settings.rateWater * (waterPercent / 100);
+
+        const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon;
         const isPaid = record.paid || false;
 
         let rentDisplay = rentData.rent.toLocaleString();
-        if(rentData.days < rentData.totalDays) {
-            rentDisplay += ` <br><span class="text-[10px] text-rose-600">(${rentData.days} วัน)</span>`;
-        }
+        if(rentData.days < rentData.totalDays) rentDisplay += ` <br><span class="text-[10px] text-rose-600">(${rentData.days} วัน)</span>`;
+
+        let elecDisp = `${elecCost.toLocaleString()} (${units} น.)`;
+        if (elecPercent !== 100) elecDisp += `<br><span class="text-[10px] text-rose-500">${elecPercent}%</span>`;
+        
+        let waterDisp = `${waterCost.toLocaleString()}`;
+        if (waterPercent !== 100) waterDisp += `<br><span class="text-[10px] text-rose-500">${waterPercent}%</span>`;
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
             <td class="px-4 py-2 font-bold text-slate-800">ห้อง ${r.roomNumber}</td>
             <td class="px-4 py-2">${r.tenant.name || '-'}</td>
             <td class="px-4 py-2">${rentDisplay}</td>
-            <td class="px-4 py-2">${elecCost.toLocaleString()} (${units} น.)</td>
-            <td class="px-4 py-2">${appData.settings.rateWater.toLocaleString()}</td>
+            <td class="px-4 py-2">${elecDisp}</td>
+            <td class="px-4 py-2">${waterDisp}</td>
             <td class="px-4 py-2">${appData.settings.rateCommon.toLocaleString()}</td>
             <td class="px-4 py-2 font-bold text-indigo-700">${total.toLocaleString()}</td>
             <td class="px-4 py-2">
@@ -989,9 +1026,13 @@
       const record = curMonthData[r.id] || { curMeter: r.lastMeter };
       const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
       const units = Math.max(0, curMeter - r.lastMeter);
-      const elecCost = units * appData.settings.rateElectric;
-      const waterCost = appData.settings.rateWater;
+      
+      const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
+      const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
+      const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
+      const waterCost = appData.settings.rateWater * (waterPercent / 100);
       const commonCost = appData.settings.rateCommon;
+      
       const total = rentData.rent + elecCost + waterCost + commonCost;
 
       currentInvoiceData = {
@@ -999,7 +1040,8 @@
         roomNumber: r.roomNumber, tenantName: r.tenant.name || "ผู้เช่าห้อง "+r.roomNumber, 
         roomPrice: rentData.rent, days: rentData.days, totalDays: rentData.totalDays,
         prevMeter: r.lastMeter, curMeter: curMeter, units: units, elecCost: elecCost, waterCost: waterCost, commonCost: commonCost, total: total,
-        bankName: appData.settings.bankName, bankAcc: appData.settings.bankAccNumber, bankOwner: appData.settings.bankAccName
+        bankName: appData.settings.bankName, bankAcc: appData.settings.bankAccNumber, bankOwner: appData.settings.bankAccName,
+        elecPercent: elecPercent, waterPercent: waterPercent
       };
 
       document.getElementById('invDormName').textContent = currentInvoiceData.dormName;
@@ -1008,19 +1050,25 @@
       document.getElementById('invRoomNumber').textContent = currentInvoiceData.roomNumber;
       document.getElementById('invTenantName').textContent = currentInvoiceData.tenantName;
       
-      // อัปเดต Label ค่าห้อง กรณีอยู่ไม่เต็มเดือน
       const roomLabel = document.getElementById('invRoomLabel');
       if (rentData.days < rentData.totalDays) {
           roomLabel.innerHTML = `ค่าเช่าห้องพัก <span class="text-rose-600 text-[10px]">(${rentData.days} วัน)</span>`;
       } else {
           roomLabel.textContent = "ค่าเช่าห้องพัก";
       }
-
       document.getElementById('invRoomPrice').textContent = currentInvoiceData.roomPrice.toLocaleString()+".00";
-      document.getElementById('invMeterDetails').textContent = `มิเตอร์: ${currentInvoiceData.prevMeter} ➔ ${currentInvoiceData.curMeter}`;
+
+      let elecDetail = `มิเตอร์: ${currentInvoiceData.prevMeter} ➔ ${currentInvoiceData.curMeter}`;
+      if (elecPercent !== 100) elecDetail += ` (คิด ${elecPercent}%)`;
+      document.getElementById('invMeterDetails').textContent = elecDetail;
       document.getElementById('invElecUnits').textContent = units;
       document.getElementById('invElecCost').textContent = currentInvoiceData.elecCost.toLocaleString()+".00";
+      
+      let waterLabel = `ค่าน้ำประปา`;
+      if (waterPercent !== 100) waterLabel += ` <span class="text-rose-600 text-[10px]">(${waterPercent}%)</span>`;
+      document.getElementById('invWaterLabel').innerHTML = waterLabel;
       document.getElementById('invWaterCost').textContent = currentInvoiceData.waterCost.toLocaleString()+".00";
+      
       document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString()+".00";
       document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString()+" บาท";
       document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
@@ -1034,11 +1082,17 @@
       let roomRentText = `1. ค่าเช่า: ${d.roomPrice.toLocaleString()} บ.`;
       if (d.days < d.totalDays) roomRentText = `1. ค่าเช่า (${d.days} วัน): ${d.roomPrice.toLocaleString()} บ.`;
 
-      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${roomRentText}\n2. ค่าไฟ (${d.units} หน่วย): ${d.elecCost.toLocaleString()} บ.\n3. ค่าน้ำ: ${d.waterCost.toLocaleString()} บ.\n4. ส่วนกลาง: ${d.commonCost.toLocaleString()} บ.\n━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
+      let elecText = `2. ค่าไฟ (${d.units} หน่วย): ${d.elecCost.toLocaleString()} บ.`;
+      if (d.elecPercent !== 100) elecText = `2. ค่าไฟ (${d.units} น. คิด ${d.elecPercent}%): ${d.elecCost.toLocaleString()} บ.`;
+
+      let waterText = `3. ค่าน้ำ: ${d.waterCost.toLocaleString()} บ.`;
+      if (d.waterPercent !== 100) waterText = `3. ค่าน้ำ (คิด ${d.waterPercent}%): ${d.waterCost.toLocaleString()} บ.`;
+
+      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${roomRentText}\n${elecText}\n${waterText}\n4. ส่วนกลาง: ${d.commonCost.toLocaleString()} บ.\n━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
       navigator.clipboard.writeText(text).then(() => alert("คัดลอกข้อความสำเร็จ นำไปวางส่งใน LINE ได้เลย!")).catch(() => alert("คัดลอกไม่สำเร็จ"));
     }
 
-    // ====== Summary (รายรับ-รายจ่าย) ======
+    // ====== Summary ======
     function renderSummary() {
       const monthStr = document.getElementById('summaryMonthSelector').value;
       let totalExpected = 0; let totalCollected = 0;
@@ -1051,7 +1105,13 @@
             const rec = mData[r.id] || {};
             const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
             const units = Math.max(0, curMeter - r.lastMeter);
-            const bill = rentData.rent + (units * appData.settings.rateElectric) + appData.settings.rateWater + appData.settings.rateCommon;
+            
+            const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
+            const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
+            const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
+            const waterCost = appData.settings.rateWater * (waterPercent / 100);
+
+            const bill = rentData.rent + elecCost + waterCost + appData.settings.rateCommon;
             
             totalExpected += bill;
             if (rec.paid) totalCollected += bill;
