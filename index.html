@@ -3,13 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบจัดการหอพัก - Jacky Place</title>
-  <!-- Tailwind CSS & Font Awesome -->
+  <title>ระบบจัดการหอพัก - Jacky Place (Cloud Version)</title>
+  
+  <!-- CSS & UI Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Tesseract.js for OCR -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- Firebase SDKs (ตัด Storage ออก ใช้แค่ Auth และ Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
 
   <style>
     body { font-family: 'Sarabun', sans-serif; }
@@ -25,48 +30,51 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
 
-  <!-- ================= หน้าจอ LOGIN ================= -->
+  <!-- ================= หน้าจอ LOGIN (ระบบ Email/Password ของ Firebase) ================= -->
   <div id="loginScreen" class="fixed inset-0 bg-indigo-900 z-50 flex items-center justify-center p-4">
     <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
       <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-        <i class="fa-solid fa-lock"></i>
+        <i class="fa-solid fa-cloud"></i>
       </div>
       <h2 class="text-2xl font-bold text-slate-800 mb-2">Jacky Place</h2>
-      <p class="text-sm text-slate-500 mb-6">กรุณาใส่รหัสผ่านเพื่อเข้าสู่ระบบ</p>
+      <p class="text-xs text-slate-500 mb-6 bg-slate-100 p-2 rounded">เชื่อมต่อระบบ Cloud เรียบร้อย<br>กรุณาใช้อีเมลและรหัสผ่านเพื่อเข้าสู่ระบบ</p>
       
-      <form onsubmit="handleLogin(event)">
-        <input type="password" id="pinInput" placeholder="รหัสผ่าน (PIN)" 
-               class="w-full px-4 py-3 border border-slate-300 rounded-xl mb-4 text-center text-xl tracking-widest focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg">
+      <form onsubmit="handleFirebaseLogin(event)">
+        <input type="email" id="loginEmail" placeholder="อีเมล (Email)" 
+               class="w-full px-4 py-3 border border-slate-300 rounded-xl mb-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
+        <input type="password" id="loginPassword" placeholder="รหัสผ่าน (Password)" 
+               class="w-full px-4 py-3 border border-slate-300 rounded-xl mb-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
+        <button type="submit" id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg flex justify-center items-center gap-2">
           เข้าสู่ระบบ
         </button>
       </form>
     </div>
   </div>
 
+  <!-- ================= ส่วนของหน้าโหลดข้อมูล ================= -->
+  <div id="loadingScreen" class="fixed inset-0 bg-white z-40 hidden flex-col items-center justify-center p-4">
+    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-indigo-600 mb-4"></i>
+    <p class="font-bold text-slate-700" id="loadingText">กำลังซิงค์ข้อมูลกับคลาวด์...</p>
+  </div>
+
   <!-- ================= ส่วนของแอปพลิเคชัน ================= -->
   <div id="mainApp" style="display: none;">
     <!-- แถบเมนูด้านบน -->
-    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40 no-print">
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-30 no-print">
       <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
         <div class="flex items-center space-x-3">
           <i class="fa-solid fa-building text-2xl text-amber-400"></i>
           <div>
             <h1 class="text-xl font-bold leading-tight" id="headerDormName">Jacky Place</h1>
-            <p class="text-xs text-indigo-200" id="headerDormSub">222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น</p>
+            <p class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full inline-block mt-1">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Cloud Sync
+            </p>
           </div>
         </div>
         <div class="flex items-center space-x-2 mt-2 sm:mt-0">
-          <button onclick="handleLogout()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 rounded text-xs font-medium transition mr-2 flex items-center gap-1.5">
+          <button onclick="handleFirebaseLogout()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 rounded text-xs font-medium transition flex items-center gap-1.5">
             <i class="fa-solid fa-power-off"></i> ออกจากระบบ
           </button>
-          <button onclick="exportDatabase()" class="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 rounded text-xs font-medium transition flex items-center gap-1.5" title="สำรองเฉพาะข้อมูลข้อความ (ไม่รวมรูปภาพ)">
-            <i class="fa-solid fa-download"></i> สำรองข้อมูล
-          </button>
-          <label class="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 rounded text-xs font-medium cursor-pointer transition flex items-center gap-1.5">
-            <i class="fa-solid fa-upload"></i> นำเข้า
-            <input type="file" id="importFile" class="hidden" accept=".json" onchange="importDatabase(event)">
-          </label>
         </div>
       </div>
     </header>
@@ -83,8 +91,10 @@
       </div>
     </div>
 
+    <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-6">
-      <!-- 1. แดชบอร์ด -->
+      
+      <!-- 1. Dashboard -->
       <section id="tab-dashboard" class="tab-content">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -106,20 +116,20 @@
         </div>
         <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
           <h3 class="font-bold text-base text-slate-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-grip text-indigo-600"></i> ผังห้องพักทั้งหมด (16 ห้อง)
+            <i class="fa-solid fa-grip text-indigo-600"></i> ผังห้องพักทั้งหมด
             <span class="text-xs font-normal text-slate-500 ml-2">(*สีแดง = แจ้งย้ายออก)</span>
           </h3>
           <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3" id="roomGridOverview"></div>
         </div>
       </section>
 
-      <!-- 2. ข้อมูลห้องพักและผู้เช่า -->
+      <!-- 2. Rooms -->
       <section id="tab-rooms" class="tab-content hidden">
         <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
-                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">ค่าห้อง (เต็ม)</th><th class="px-4 py-3">สถานะ</th><th class="px-4 py-3">ชื่อ-นามสกุล (ชื่อเล่น)</th><th class="px-4 py-3">เบอร์โทรศัพท์</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
+                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">ค่าห้อง</th><th class="px-4 py-3">สถานะ</th><th class="px-4 py-3">ผู้เช่า (ชื่อเล่น)</th><th class="px-4 py-3">เบอร์โทร</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
               </thead>
               <tbody id="tenantTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
@@ -127,17 +137,17 @@
         </div>
       </section>
 
-      <!-- 3. จดมิเตอร์ประจำเดือน -->
+      <!-- 3. Meters -->
       <section id="tab-meters" class="tab-content hidden">
         <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
           <div class="flex justify-between items-center mb-4 pb-4 border-b">
-            <h2 class="text-lg font-bold">บันทึกมิเตอร์น้ำ-ไฟ ประจำเดือน</h2>
+            <h2 class="text-lg font-bold">บันทึกมิเตอร์ ประจำเดือน</h2>
             <input type="month" id="meterBillingMonth" class="px-3 py-1.5 border rounded-lg text-sm bg-slate-50" onchange="renderMetersTable()">
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
-                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">เดือนก่อน</th><th class="px-4 py-3">เดือนนี้ (หน่วย)</th><th class="px-4 py-3">อัปโหลดรูป (OCR)</th><th class="px-4 py-3">หน่วยที่ใช้</th><th class="px-4 py-3">รวมค่าไฟ</th></tr>
+                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">เดือนก่อน</th><th class="px-4 py-3">เดือนนี้ (หน่วย)</th><th class="px-4 py-3">รูปภาพมิเตอร์ (เก็บบน Cloud)</th><th class="px-4 py-3">หน่วยที่ใช้</th><th class="px-4 py-3">รวมค่าไฟ</th></tr>
               </thead>
               <tbody id="meterTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
@@ -145,18 +155,17 @@
         </div>
       </section>
 
-      <!-- 4. ออกบิลและเรียกเก็บเงิน -->
+      <!-- 4. Billing -->
       <section id="tab-billing" class="tab-content hidden">
         <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
           <div class="flex justify-between items-center mb-4 pb-4 border-b">
             <h2 class="text-lg font-bold">รายการเรียกเก็บเงินค่าเช่า</h2>
             <input type="month" id="billingMonthSelector" class="px-3 py-1.5 border rounded-lg text-sm bg-slate-50" onchange="renderBillingList()">
           </div>
-          <p class="text-xs text-rose-600 font-medium mb-3">* หากเข้า/ออกระหว่างเดือน ระบบจะคำนวณค่าห้องตามจำนวนวันจริงให้อัตโนมัติ</p>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
-                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">ผู้เช่า</th><th class="px-4 py-3">ค่าห้อง (ตามวัน)</th><th class="px-4 py-3">ค่าไฟ</th><th class="px-4 py-3">ค่าน้ำ</th><th class="px-4 py-3">ส่วนกลาง</th><th class="px-4 py-3 font-bold text-indigo-900">รวมสุทธิ</th><th class="px-4 py-3">สถานะ</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
+                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">ผู้เช่า</th><th class="px-4 py-3">ค่าห้อง</th><th class="px-4 py-3">ค่าไฟ</th><th class="px-4 py-3">ค่าน้ำ</th><th class="px-4 py-3">ส่วนกลาง</th><th class="px-4 py-3 font-bold text-indigo-900">รวมสุทธิ</th><th class="px-4 py-3">สถานะ</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
               </thead>
               <tbody id="billingTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
@@ -164,104 +173,57 @@
         </div>
       </section>
 
-      <!-- 5. สรุปรายรับ-รายจ่าย -->
+      <!-- 5. Summary -->
       <section id="tab-summary" class="tab-content hidden">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-4xl mx-auto">
           <div class="flex justify-between items-center mb-6 pb-4 border-b">
             <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-chart-line text-indigo-600 mr-2"></i>สรุปผลประกอบการประจำเดือน</h2>
             <input type="month" id="summaryMonthSelector" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-semibold bg-slate-50 text-indigo-900" onchange="renderSummary()">
           </div>
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 h-full relative">
-                <h3 class="font-bold text-blue-900 mb-4 border-b border-blue-200 pb-2"><i class="fa-solid fa-arrow-down text-blue-600"></i> สรุปรายรับ (Income)</h3>
-                <div class="flex justify-between items-center mb-3">
-                  <span class="text-sm text-blue-800">ยอดเรียกเก็บทั้งหมด (Expected)</span>
-                  <span class="font-mono font-bold text-slate-700" id="sumExpectedIncome">0</span>
-                </div>
-                <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100 shadow-sm mt-4">
-                  <span class="text-sm font-bold text-blue-900">รับเงินจริงแล้ว (Collected)</span>
-                  <span class="font-mono text-xl font-bold text-blue-700" id="sumCollectedIncome">0</span>
-                </div>
-                <p class="text-[10px] text-blue-500 mt-2">* ยอดรับจริงคำนวณจากบิลที่มีสถานะ "ชำระแล้ว"</p>
+                <h3 class="font-bold text-blue-900 mb-4 border-b border-blue-200 pb-2"><i class="fa-solid fa-arrow-down text-blue-600"></i> สรุปรายรับ</h3>
+                <div class="flex justify-between items-center mb-3"><span class="text-sm text-blue-800">ยอดเรียกเก็บทั้งหมด</span><span class="font-mono font-bold text-slate-700" id="sumExpectedIncome">0</span></div>
+                <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100 shadow-sm mt-4"><span class="text-sm font-bold text-blue-900">รับเงินจริงแล้ว</span><span class="font-mono text-xl font-bold text-blue-700" id="sumCollectedIncome">0</span></div>
               </div>
             </div>
-
             <div>
               <div class="bg-rose-50 border border-rose-100 rounded-xl p-5">
-                <h3 class="font-bold text-rose-900 mb-4 border-b border-rose-200 pb-2 flex justify-between items-center">
-                  <span><i class="fa-solid fa-arrow-up text-rose-600"></i> บันทึกรายจ่าย (Expenses)</span>
-                </h3>
-                
+                <h3 class="font-bold text-rose-900 mb-4 border-b border-rose-200 pb-2"><i class="fa-solid fa-arrow-up text-rose-600"></i> บันทึกรายจ่าย</h3>
                 <form id="expenseForm" onsubmit="saveExpenses(event)" class="space-y-3">
-                  <div class="flex items-center justify-between">
-                    <label class="text-sm text-rose-800 w-1/2">ค่าไฟฟ้าของหอพัก</label>
-                    <div class="relative w-1/2">
-                      <input type="number" id="expElectric" class="w-full pl-3 pr-8 py-1.5 border rounded text-right font-mono text-sm" placeholder="0">
-                      <span class="absolute right-3 top-1.5 text-slate-400 text-sm">บ.</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <label class="text-sm text-rose-800 w-1/2">ค่าน้ำประปาของหอพัก</label>
-                    <div class="relative w-1/2">
-                      <input type="number" id="expWater" class="w-full pl-3 pr-8 py-1.5 border rounded text-right font-mono text-sm" placeholder="0">
-                      <span class="absolute right-3 top-1.5 text-slate-400 text-sm">บ.</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <label class="text-sm text-rose-800 w-1/2">ค่าซ่อมบำรุง / แม่บ้าน</label>
-                    <div class="relative w-1/2">
-                      <input type="number" id="expMaintenance" class="w-full pl-3 pr-8 py-1.5 border rounded text-right font-mono text-sm" placeholder="0">
-                      <span class="absolute right-3 top-1.5 text-slate-400 text-sm">บ.</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <label class="text-sm text-rose-800 w-1/2">รายจ่ายอื่นๆ</label>
-                    <div class="relative w-1/2">
-                      <input type="number" id="expOther" class="w-full pl-3 pr-8 py-1.5 border rounded text-right font-mono text-sm" placeholder="0">
-                      <span class="absolute right-3 top-1.5 text-slate-400 text-sm">บ.</span>
-                    </div>
-                  </div>
-                  
-                  <div class="pt-3 border-t border-rose-200 flex justify-between items-center">
-                    <span class="text-sm font-bold text-rose-900">รวมรายจ่ายทั้งหมด</span>
-                    <span class="font-mono text-lg font-bold text-rose-700" id="sumTotalExpense">0</span>
-                  </div>
-                  <button type="submit" class="w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg text-sm font-semibold transition shadow-sm">บันทึกรายจ่าย</button>
+                  <div class="flex justify-between"><label class="text-sm w-1/2">ค่าไฟฟ้าหอพัก</label><input type="number" id="expElectric" class="w-1/2 p-1 border rounded text-right text-sm"></div>
+                  <div class="flex justify-between"><label class="text-sm w-1/2">ค่าน้ำหอพัก</label><input type="number" id="expWater" class="w-1/2 p-1 border rounded text-right text-sm"></div>
+                  <div class="flex justify-between"><label class="text-sm w-1/2">ค่าซ่อม/แม่บ้าน</label><input type="number" id="expMaintenance" class="w-1/2 p-1 border rounded text-right text-sm"></div>
+                  <div class="flex justify-between"><label class="text-sm w-1/2">อื่นๆ</label><input type="number" id="expOther" class="w-1/2 p-1 border rounded text-right text-sm"></div>
+                  <div class="pt-3 border-t flex justify-between font-bold text-rose-900"><span>รวมรายจ่าย</span><span id="sumTotalExpense">0</span></div>
+                  <button type="submit" class="w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg text-sm font-semibold shadow">บันทึกรายจ่ายบน Cloud</button>
                 </form>
               </div>
             </div>
           </div>
-
-          <!-- สรุปผลกำไร -->
-          <div class="mt-6 bg-slate-800 text-white rounded-xl p-6 text-center shadow-lg relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 opacity-10 text-6xl"><i class="fa-solid fa-wallet"></i></div>
-            <h3 class="text-sm font-medium text-slate-300 mb-1">กำไร/ขาดทุน สุทธิ (Net Profit)</h3>
-            <div id="sumNetProfit" class="text-4xl font-bold tracking-wider text-emerald-400">0.00</div>
-            <p class="text-xs text-slate-400 mt-2">* (รายรับที่เก็บได้จริง - รวมรายจ่ายทั้งหมด)</p>
-          </div>
+          <div class="mt-6 bg-slate-800 text-white rounded-xl p-6 text-center shadow-lg"><h3 class="text-sm font-medium text-slate-300 mb-1">กำไร/ขาดทุน สุทธิ (Net Profit)</h3><div id="sumNetProfit" class="text-4xl font-bold text-emerald-400">0.00</div></div>
         </div>
       </section>
 
-      <!-- 6. ตั้งค่าหอพัก -->
+      <!-- 6. Settings -->
       <section id="tab-settings" class="tab-content hidden">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto">
           <h2 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b">ตั้งค่าข้อมูลหอพัก & บริการ</h2>
           <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-4">
-            <div><label class="block text-sm font-medium mb-1">ชื่อหอพัก</label><input type="text" id="setDormName" class="w-full px-3 py-2 border rounded-lg" required></div>
-            <div><label class="block text-sm font-medium mb-1">ที่อยู่</label><textarea id="setDormAddress" rows="2" class="w-full px-3 py-2 border rounded-lg" required></textarea></div>
+            <div><label class="block text-sm mb-1">ชื่อหอพัก</label><input type="text" id="setDormName" class="w-full p-2 border rounded" required></div>
+            <div><label class="block text-sm mb-1">ที่อยู่</label><textarea id="setDormAddress" rows="2" class="w-full p-2 border rounded" required></textarea></div>
             <div class="grid grid-cols-2 gap-4">
-              <div><label class="block text-sm font-medium mb-1">ชื่อบัญชีรับเงิน</label><input type="text" id="setBankAccName" class="w-full px-3 py-2 border rounded-lg" required></div>
-              <div><label class="block text-sm font-medium mb-1">ธนาคาร</label><input type="text" id="setBankName" class="w-full px-3 py-2 border rounded-lg" required></div>
+              <div><label class="block text-sm mb-1">ชื่อบัญชีรับเงิน</label><input type="text" id="setBankAccName" class="w-full p-2 border rounded" required></div>
+              <div><label class="block text-sm mb-1">ธนาคาร</label><input type="text" id="setBankName" class="w-full p-2 border rounded" required></div>
             </div>
-            <div><label class="block text-sm font-medium mb-1">เลขที่บัญชี</label><input type="text" id="setBankAccNumber" class="w-full px-3 py-2 border rounded-lg" required></div>
+            <div><label class="block text-sm mb-1">เลขที่บัญชี</label><input type="text" id="setBankAccNumber" class="w-full p-2 border rounded" required></div>
             <div class="grid grid-cols-3 gap-4 border-t pt-4">
-              <div><label class="block text-sm font-medium mb-1">ค่าไฟ (บ./หน่วย)</label><input type="number" step="0.5" id="setRateElectric" class="w-full px-3 py-2 border rounded-lg" required></div>
-              <div><label class="block text-sm font-medium mb-1">ค่าน้ำ (เหมา)</label><input type="number" id="setRateWater" class="w-full px-3 py-2 border rounded-lg" required></div>
-              <div><label class="block text-sm font-medium mb-1">ส่วนกลาง (บ.)</label><input type="number" id="setRateCommon" class="w-full px-3 py-2 border rounded-lg" required></div>
+              <div><label class="block text-sm mb-1">ค่าไฟ (บ./หน่วย)</label><input type="number" step="0.5" id="setRateElectric" class="w-full p-2 border rounded" required></div>
+              <div><label class="block text-sm mb-1">ค่าน้ำ (เหมา)</label><input type="number" id="setRateWater" class="w-full p-2 border rounded" required></div>
+              <div><label class="block text-sm mb-1">ส่วนกลาง (บ.)</label><input type="number" id="setRateCommon" class="w-full p-2 border rounded" required></div>
             </div>
-            <div class="pt-4 flex justify-end"><button type="submit" class="px-5 py-2 bg-indigo-700 text-white rounded-lg shadow">บันทึกการตั้งค่า</button></div>
+            <div class="flex justify-end"><button type="submit" class="px-5 py-2 bg-indigo-700 text-white rounded shadow">บันทึกขึ้น Cloud</button></div>
           </form>
         </div>
       </section>
@@ -270,7 +232,13 @@
 
   <!-- MODAL: แก้ไขข้อมูลห้องและอัปโหลดเอกสาร -->
   <div id="tenantModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-start justify-center p-4 overflow-y-auto pt-10 pb-10">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl relative">
+      <!-- Overlay โหลดรูป -->
+      <div id="modalLoading" class="absolute inset-0 bg-white/80 z-20 hidden flex-col items-center justify-center rounded-xl">
+        <i class="fa-solid fa-cloud-arrow-up fa-bounce text-3xl text-indigo-600 mb-2"></i>
+        <p class="font-bold text-sm text-indigo-900">กำลังอัปโหลดรูปภาพ...</p>
+      </div>
+
       <div class="p-5 border-b bg-slate-50 flex justify-between items-center rounded-t-xl sticky top-0 z-10">
         <h3 class="font-bold text-slate-800 text-lg" id="modalRoomTitle">แก้ไขห้อง</h3>
         <button onclick="closeModal('tenantModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -279,105 +247,80 @@
       <div class="p-6">
         <form id="tenantForm" onsubmit="saveTenantData(event)">
           <input type="hidden" id="editRoomId">
-          <!-- ข้อมูลทั่วไป -->
           <div class="grid grid-cols-2 gap-4 mb-4">
             <div><label class="text-xs font-semibold mb-1 block">ราคาห้องเต็มเดือน</label><input type="number" id="editRoomPrice" class="w-full border p-2 rounded text-sm" required></div>
             <div><label class="text-xs font-semibold mb-1 block">สถานะ</label><select id="editRoomStatus" class="w-full border p-2 rounded text-sm"><option value="มีผู้เช่า">มีผู้เช่า</option><option value="ห้องว่าง">ห้องว่าง</option></select></div>
           </div>
 
-          <!-- ระบบคำนวณส่วนลด/เปอร์เซ็นต์ (ใหม่) -->
           <div class="grid grid-cols-2 gap-4 mb-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-            <div class="col-span-2"><h4 class="text-xs font-bold text-indigo-900"><i class="fa-solid fa-percent"></i> ตั้งค่าสัดส่วนค่าน้ำ-ไฟ เฉพาะห้องนี้</h4></div>
-            <div>
-              <label class="text-xs mb-1 block font-bold text-indigo-800">คิดค่าไฟฟ้า (%)</label>
-              <input type="number" id="editElecPercent" class="w-full border border-indigo-200 p-2 rounded text-sm bg-white" placeholder="100">
-            </div>
-            <div>
-              <label class="text-xs mb-1 block font-bold text-indigo-800">คิดค่าน้ำประปา (%)</label>
-              <input type="number" id="editWaterPercent" class="w-full border border-indigo-200 p-2 rounded text-sm bg-white" placeholder="100">
-            </div>
-            <div class="col-span-2 text-[10px] text-indigo-600 leading-tight">
-              * ค่าปกติคือ 100 หากหารครึ่ง(แชร์ห้อง) ให้ใส่ 50 หากต้องการบวกเพิ่มให้ใส่มากกว่า 100 (เช่น 110 คือบวกเพิ่ม 10%) หากให้ฟรีใส่ 0
-            </div>
+            <div class="col-span-2"><h4 class="text-xs font-bold text-indigo-900">สัดส่วนค่าน้ำ-ไฟ เฉพาะห้องนี้</h4></div>
+            <div><label class="text-xs mb-1 block">คิดค่าไฟ (%)</label><input type="number" id="editElecPercent" class="w-full border p-2 rounded text-sm" placeholder="100"></div>
+            <div><label class="text-xs mb-1 block">คิดค่าน้ำ (%)</label><input type="number" id="editWaterPercent" class="w-full border p-2 rounded text-sm" placeholder="100"></div>
           </div>
-
-          <hr class="mb-4">
           
-          <!-- วันที่ย้ายเข้า-ออก -->
-          <div class="grid grid-cols-2 gap-4 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-            <div>
-              <label class="text-xs mb-1 block font-bold text-indigo-700">วันที่ย้ายเข้า</label>
-              <input type="date" id="editMoveIn" class="w-full border p-2 rounded text-sm">
-            </div>
-            <div>
-              <label class="text-xs mb-1 block font-bold text-rose-600">วันที่แจ้งย้ายออก</label>
-              <input type="date" id="editMoveOut" class="w-full border border-rose-300 p-2 rounded text-sm bg-rose-50" title="หากระบุวันที่นี้ การ์ดหน้าแดชบอร์ดจะกลายเป็นสีแดง">
-            </div>
+          <div class="grid grid-cols-2 gap-4 mb-4 bg-slate-50 p-3 rounded border">
+            <div><label class="text-xs mb-1 block font-bold text-indigo-700">วันที่ย้ายเข้า</label><input type="date" id="editMoveIn" class="w-full border p-2 rounded text-sm"></div>
+            <div><label class="text-xs mb-1 block font-bold text-rose-600">วันที่แจ้งย้ายออก</label><input type="date" id="editMoveOut" class="w-full border p-2 rounded text-sm bg-rose-50"></div>
           </div>
 
-          <!-- ชื่อและชื่อเล่น -->
           <div class="grid grid-cols-3 gap-4 mb-4">
-            <div class="col-span-2"><label class="text-xs mb-1 block">ชื่อ-นามสกุล ผู้เช่า</label><input type="text" id="editTenantName" class="w-full border p-2 rounded text-sm"></div>
+            <div class="col-span-2"><label class="text-xs mb-1 block">ชื่อ-นามสกุล</label><input type="text" id="editTenantName" class="w-full border p-2 rounded text-sm"></div>
             <div class="col-span-1"><label class="text-xs mb-1 block">ชื่อเล่น</label><input type="text" id="editTenantNickname" class="w-full border p-2 rounded text-sm"></div>
           </div>
-          
           <div class="grid grid-cols-2 gap-4 mb-4">
             <div><label class="text-xs mb-1 block">เบอร์โทร</label><input type="text" id="editTenantPhone" class="w-full border p-2 rounded text-sm"></div>
             <div><label class="text-xs mb-1 block">เลขบัตรประชาชน</label><input type="text" id="editTenantIdCard" class="w-full border p-2 rounded text-sm"></div>
           </div>
           <div class="grid grid-cols-2 gap-4 mb-4">
-            <div><label class="text-xs mb-1 block">เงินประกัน/มัดจำ</label><input type="number" id="editDeposit" class="w-full border p-2 rounded text-sm"></div>
+            <div><label class="text-xs mb-1 block">เงินประกัน</label><input type="number" id="editDeposit" class="w-full border p-2 rounded text-sm"></div>
             <div><label class="text-xs mb-1 block">ทะเบียนรถ</label><input type="text" id="editCarPlate" class="w-full border p-2 rounded text-sm"></div>
           </div>
-          <div class="mb-6">
-            <label class="text-xs mb-1 block">ติดต่อฉุกเฉิน</label><input type="text" id="editEmergencyContact" class="w-full border p-2 rounded text-sm">
-          </div>
 
-          <!-- ส่วนแนบเอกสาร (อัปโหลดรูป) -->
-          <div class="border-t border-slate-200 pt-5">
-            <h4 class="font-bold text-sm text-indigo-700 mb-4"><i class="fa-solid fa-file-contract"></i> เอกสารแนบ (เฉพาะไฟล์รูปภาพ)</h4>
+          <!-- แนบเอกสาร -->
+          <div class="border-t pt-5">
+            <h4 class="font-bold text-sm text-indigo-700 mb-4"><i class="fa-solid fa-cloud"></i> เอกสารแนบ (ฝากรูปอัตโนมัติผ่าน ImgBB)</h4>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="border border-slate-200 rounded-lg p-3 bg-slate-50 text-center">
-                <p class="text-xs font-bold text-slate-700 mb-2">สัญญาเช่า 1 ชุด</p>
-                <div id="preview-contract-box" class="hidden mb-2 relative group">
+              <!-- สัญญาเช่า -->
+              <div class="border rounded-lg p-3 bg-slate-50 text-center">
+                <p class="text-xs font-bold mb-2">สัญญาเช่า</p>
+                <div id="preview-contract-box" class="hidden mb-2 relative">
                   <img id="preview-contract-img" src="" class="w-full h-24 object-cover rounded border">
-                  <button type="button" onclick="deleteDoc('contract')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-80 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
-                  <button type="button" onclick="viewDoc('contract')" class="text-xs text-indigo-600 mt-1 underline">ดูรูปขยาย</button>
+                  <button type="button" onclick="deleteCloudDoc('contract')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6"><i class="fa-solid fa-trash text-xs"></i></button>
+                  <button type="button" onclick="viewCloudDoc('contract')" class="text-xs text-indigo-600 mt-1 underline">ดูรูปขยาย</button>
                 </div>
                 <div id="upload-contract-box">
-                  <label class="cursor-pointer bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded text-xs font-medium inline-block w-full">
-                    <i class="fa-solid fa-upload"></i> อัปโหลดรูปสัญญา
-                    <input type="file" accept="image/*" class="hidden" onchange="handleDocUpload(event, 'contract')">
+                  <label class="cursor-pointer border border-indigo-300 text-indigo-600 bg-white px-3 py-1.5 rounded text-xs block w-full hover:bg-indigo-50">
+                    <i class="fa-solid fa-upload"></i> อัปโหลด <input type="file" accept="image/*" class="hidden" onchange="uploadCloudDoc(event, 'contract')">
                   </label>
                 </div>
               </div>
 
-              <div class="border border-slate-200 rounded-lg p-3 bg-slate-50 text-center">
-                <p class="text-xs font-bold text-slate-700 mb-2">บัตรประชาชน 1 แผ่น</p>
-                <div id="preview-idcard-box" class="hidden mb-2 relative group">
+              <!-- บัตรประชาชน -->
+              <div class="border rounded-lg p-3 bg-slate-50 text-center">
+                <p class="text-xs font-bold mb-2">บัตรประชาชน</p>
+                <div id="preview-idcard-box" class="hidden mb-2 relative">
                   <img id="preview-idcard-img" src="" class="w-full h-24 object-cover rounded border">
-                  <button type="button" onclick="deleteDoc('idcard')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-80 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
-                  <button type="button" onclick="viewDoc('idcard')" class="text-xs text-indigo-600 mt-1 underline">ดูรูปขยาย</button>
+                  <button type="button" onclick="deleteCloudDoc('idcard')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6"><i class="fa-solid fa-trash text-xs"></i></button>
+                  <button type="button" onclick="viewCloudDoc('idcard')" class="text-xs text-indigo-600 mt-1 underline">ดูรูปขยาย</button>
                 </div>
                 <div id="upload-idcard-box">
-                  <label class="cursor-pointer bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded text-xs font-medium inline-block w-full">
-                    <i class="fa-solid fa-upload"></i> อัปโหลดบัตร ปชช.
-                    <input type="file" accept="image/*" class="hidden" onchange="handleDocUpload(event, 'idcard')">
+                  <label class="cursor-pointer border border-indigo-300 text-indigo-600 bg-white px-3 py-1.5 rounded text-xs block w-full hover:bg-indigo-50">
+                    <i class="fa-solid fa-upload"></i> อัปโหลด <input type="file" accept="image/*" class="hidden" onchange="uploadCloudDoc(event, 'idcard')">
                   </label>
                 </div>
               </div>
 
-              <div class="border border-slate-200 rounded-lg p-3 bg-slate-50 text-center">
-                <p class="text-xs font-bold text-slate-700 mb-2">ทะเบียนบ้าน 1 แผ่น</p>
-                <div id="preview-house-box" class="hidden mb-2 relative group">
+              <!-- ทะเบียนบ้าน -->
+              <div class="border rounded-lg p-3 bg-slate-50 text-center">
+                <p class="text-xs font-bold mb-2">ทะเบียนบ้าน</p>
+                <div id="preview-house-box" class="hidden mb-2 relative">
                   <img id="preview-house-img" src="" class="w-full h-24 object-cover rounded border">
-                  <button type="button" onclick="deleteDoc('house')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-80 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
-                  <button type="button" onclick="viewDoc('house')" class="text-xs text-indigo-600 mt-1 underline">ดูรูปขยาย</button>
+                  <button type="button" onclick="deleteCloudDoc('house')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6"><i class="fa-solid fa-trash text-xs"></i></button>
+                  <button type="button" onclick="viewCloudDoc('house')" class="text-xs text-indigo-600 mt-1 underline">ดูรูปขยาย</button>
                 </div>
                 <div id="upload-house-box">
-                  <label class="cursor-pointer bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded text-xs font-medium inline-block w-full">
-                    <i class="fa-solid fa-upload"></i> อัปโหลดทะเบียนบ้าน
-                    <input type="file" accept="image/*" class="hidden" onchange="handleDocUpload(event, 'house')">
+                  <label class="cursor-pointer border border-indigo-300 text-indigo-600 bg-white px-3 py-1.5 rounded text-xs block w-full hover:bg-indigo-50">
+                    <i class="fa-solid fa-upload"></i> อัปโหลด <input type="file" accept="image/*" class="hidden" onchange="uploadCloudDoc(event, 'house')">
                   </label>
                 </div>
               </div>
@@ -385,8 +328,8 @@
           </div>
 
           <div class="flex justify-end gap-2 mt-6 pt-4 border-t sticky bottom-0 bg-white">
-            <button type="button" onclick="closeModal('tenantModal')" class="px-5 py-2.5 bg-slate-200 rounded-lg text-sm font-semibold">ยกเลิก</button>
-            <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow">บันทึกข้อมูล</button>
+            <button type="button" onclick="closeModal('tenantModal')" class="px-5 py-2.5 bg-slate-200 rounded text-sm">ยกเลิก</button>
+            <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white rounded text-sm shadow">บันทึกลง Cloud</button>
           </div>
         </form>
       </div>
@@ -397,253 +340,287 @@
   <div id="invoiceModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[95vh]">
       <div class="p-4 bg-slate-800 text-white flex justify-between items-center no-print">
-        <h3 class="text-sm font-bold"><i class="fa-solid fa-file-invoice mr-2"></i> ใบแจ้งหนี้ค่าเช่าห้องพัก</h3>
+        <h3 class="text-sm font-bold">ใบแจ้งหนี้ค่าเช่าห้องพัก</h3>
         <button onclick="closeModal('invoiceModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div id="printInvoiceArea" class="p-6 bg-white text-slate-800 overflow-y-auto">
         <div class="text-center pb-4 border-b">
-          <h2 class="text-xl font-bold" id="invDormName"></h2>
-          <p class="text-xs" id="invDormAddress"></p>
-          <h3 class="text-base font-bold text-indigo-900 mt-2">ใบแจ้งค่าเช่าและสาธารณูปโภค</h3>
-          <p class="text-xs text-slate-500" id="invMonth"></p>
+          <h2 class="text-xl font-bold" id="invDormName"></h2><p class="text-xs" id="invDormAddress"></p>
+          <h3 class="text-base font-bold mt-2">ใบแจ้งค่าเช่าและสาธารณูปโภค</h3><p class="text-xs" id="invMonth"></p>
         </div>
         <div class="flex justify-between py-3 text-xs border-b">
-          <div><span class="text-slate-500">ห้องพัก:</span> <strong class="text-sm" id="invRoomNumber"></strong></div>
-          <div><span class="text-slate-500">ผู้เช่า:</span> <strong class="text-sm" id="invTenantName"></strong></div>
+          <div>ห้อง: <strong class="text-sm" id="invRoomNumber"></strong></div>
+          <div>ผู้เช่า: <strong class="text-sm" id="invTenantName"></strong></div>
         </div>
         <table class="w-full text-xs mt-3 mb-4">
-          <tr class="border-b text-left text-slate-500"><th class="py-1">รายการ</th><th class="py-1 text-center">หน่วย</th><th class="py-1 text-right">จำนวนเงิน (บาท)</th></tr>
+          <tr class="border-b text-left"><th class="py-1">รายการ</th><th class="py-1 text-center">หน่วย</th><th class="py-1 text-right">จำนวนเงิน (บ.)</th></tr>
           <tr><td class="py-2" id="invRoomLabel">ค่าเช่าห้องพัก</td><td class="py-2 text-center">-</td><td class="py-2 text-right" id="invRoomPrice"></td></tr>
-          <tr>
-            <td class="py-2">ค่าไฟฟ้า (5 บ./น.) <div class="text-[10px] text-slate-400" id="invMeterDetails"></div></td>
-            <td class="py-2 text-center" id="invElecUnits"></td><td class="py-2 text-right" id="invElecCost"></td>
-          </tr>
+          <tr><td class="py-2">ค่าไฟ <div class="text-[10px]" id="invMeterDetails"></div></td><td class="py-2 text-center" id="invElecUnits"></td><td class="py-2 text-right" id="invElecCost"></td></tr>
           <tr><td class="py-2" id="invWaterLabel">ค่าน้ำประปา</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invWaterCost"></td></tr>
-          <tr><td class="py-2">ค่าส่วนกลาง+ที่จอดรถ</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
-          <tr class="border-t-2 border-slate-800 font-bold bg-slate-50"><td class="py-2">รวมยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-indigo-700 text-base" id="invTotalAmount"></td></tr>
+          <tr><td class="py-2">ส่วนกลาง</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
+          <tr class="border-t-2 font-bold bg-slate-50"><td class="py-2">ยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-base text-indigo-700" id="invTotalAmount"></td></tr>
         </table>
-        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-2 text-xs">
-          <p class="font-bold text-indigo-900 mb-1">ช่องทางการชำระเงิน:</p>
-          <p id="invBankName"></p><p class="font-bold text-sm">เลขที่บัญชี: <span class="text-indigo-700" id="invBankAcc"></span></p><p>ชื่อบัญชี: <span id="invBankOwner"></span></p>
-        </div>
       </div>
-      <div class="p-4 bg-slate-100 border-t flex justify-between no-print">
-        <button onclick="copyLineBill()" class="px-3 py-2 bg-emerald-600 text-white rounded text-xs"><i class="fa-brands fa-line"></i> คัดลอกส่ง LINE</button>
-        <button onclick="window.print()" class="px-4 py-2 bg-slate-800 text-white rounded text-xs"><i class="fa-solid fa-print"></i> พิมพ์ PDF</button>
+      <div class="p-4 bg-slate-100 flex justify-between no-print">
+        <button onclick="copyLineBill()" class="px-3 py-2 bg-emerald-600 text-white rounded text-xs">คัดลอกส่ง LINE</button>
+        <button onclick="window.print()" class="px-3 py-2 bg-slate-800 text-white rounded text-xs">พิมพ์ PDF</button>
       </div>
     </div>
   </div>
 
+
+  <!-- ======================= JAVASCRIPT ======================= -->
   <script>
-    // ================= 1. ระบบฐานข้อมูลเอกสาร (IndexedDB) =================
-    const DOC_DB_NAME = "JackyPlaceDocsDB";
-    const DOC_STORE_NAME = "documents";
-    let docDB;
+    // 🔴 1. นำ Firebase Config จากเว็บไซต์ Firebase ของคุณมาวางแทนที่ตรงนี้
+    const firebaseConfig = {
+		apiKey: "AIzaSyDsoKwoSoVrwONtB_pw3jl_NJeS8dPq9Qw",
+		authDomain: "jacky-place.firebaseapp.com",
+		projectId: "jacky-place",
+		storageBucket: "jacky-place.firebasestorage.app",
+		messagingSenderId: "622847780010",
+		appId: "1:622847780010:web:69a2731ef3b10954285cd3"
+    };
 
-    function initDocDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DOC_DB_NAME, 1);
-        request.onupgradeneeded = (e) => {
-          docDB = e.target.result;
-          if (!docDB.objectStoreNames.contains(DOC_STORE_NAME)) {
-            docDB.createObjectStore(DOC_STORE_NAME);
-          }
-        };
-        request.onsuccess = (e) => { docDB = e.target.result; resolve(); };
-        request.onerror = (e) => reject(e);
+    // 🔴 2. นำ ImgBB API Key ของคุณมาวางตรงนี้
+    const IMGBB_API_KEY = 0fc8fbab2adfab04d6333ba40dbbbff9; 
+
+    // ==============================================================
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let appData = {};
+    const DORM_DOC_ID = "JackyPlace_MainData";
+
+    // ================= ระบบ LOGIN FIREBASE =================
+    function handleFirebaseLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnLogin');
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังเข้าสู่ระบบ...`;
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPassword').value;
+
+      auth.signInWithEmailAndPassword(email, pass).catch(err => {
+        alert("อีเมล หรือ รหัสผ่าน ไม่ถูกต้อง! (" + err.message + ")");
+        btn.innerHTML = `เข้าสู่ระบบ`;
       });
     }
 
-    function saveDocumentToDB(roomId, docType, base64Data) {
-      return new Promise((resolve) => {
-        const tx = docDB.transaction(DOC_STORE_NAME, "readwrite");
-        tx.objectStore(DOC_STORE_NAME).put(base64Data, `${roomId}_${docType}`);
-        tx.oncomplete = () => resolve();
-      });
+    function handleFirebaseLogout() { auth.signOut(); }
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('loadingScreen').style.display = 'flex';
+        initAppFromCloud(); 
+      } else {
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+      }
+    });
+
+    // ================= โหลด/บันทึกข้อมูล CLOUD =================
+    async function initAppFromCloud() {
+      try {
+        const doc = await db.collection("DormManager").doc(DORM_DOC_ID).get();
+        if (doc.exists) {
+          appData = doc.data();
+        } else {
+          appData = createDefaultData();
+          await db.collection("DormManager").doc(DORM_DOC_ID).set(appData);
+        }
+        
+        if (!appData.monthlyExpenses) appData.monthlyExpenses = {};
+        appData.rooms.forEach(r => {
+          if (!r.tenant.docs) r.tenant.docs = { contract: "", idcard: "", house: "" };
+        });
+
+        const now = new Date();
+        const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        document.getElementById('meterBillingMonth').value = curMonthStr;
+        document.getElementById('billingMonthSelector').value = curMonthStr;
+        document.getElementById('summaryMonthSelector').value = curMonthStr;
+        
+        updateHeaderAndSettings(); 
+        renderDashboard(); 
+        renderRoomsTable(); 
+        renderMetersTable(); 
+        renderBillingList();
+
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+
+      } catch (error) {
+        alert("เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Cloud: " + error.message);
+      }
     }
 
-    function getDocumentFromDB(roomId, docType) {
-      return new Promise((resolve) => {
-        const tx = docDB.transaction(DOC_STORE_NAME, "readonly");
-        const req = tx.objectStore(DOC_STORE_NAME).get(`${roomId}_${docType}`);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
-      });
+    async function saveToCloud() {
+      try { await db.collection("DormManager").doc(DORM_DOC_ID).set(appData); } 
+      catch (err) { alert("ไม่สามารถบันทึกข้อมูลขึ้น Cloud ได้"); }
     }
 
-    function deleteDocumentFromDB(roomId, docType) {
-      return new Promise((resolve) => {
-        const tx = docDB.transaction(DOC_STORE_NAME, "readwrite");
-        tx.objectStore(DOC_STORE_NAME).delete(`${roomId}_${docType}`);
-        tx.oncomplete = () => resolve();
-      });
-    }
-
+    // ================= ระบบอัปโหลดรูปภาพ (IMGBB API ฟรี ไม่ใช้บัตรเครดิต) =================
     function compressImage(file, callback) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = event => {
-        const img = new Image();
-        img.src = event.target.result;
+      reader.onload = e => {
+        const img = new Image(); img.src = e.target.result;
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1000;
-          let scaleSize = 1;
-          if (img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
-          canvas.width = img.width * scaleSize;
-          canvas.height = img.height * scaleSize;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          callback(canvas.toDataURL('image/jpeg', 0.7));
+          const cvs = document.createElement('canvas');
+          let scale = 1; if(img.width > 1200) scale = 1200 / img.width;
+          cvs.width = img.width * scale; cvs.height = img.height * scale;
+          cvs.getContext('2d').drawImage(img, 0, 0, cvs.width, cvs.height);
+          callback(cvs.toDataURL('image/jpeg', 0.6)); 
         }
       }
     }
 
-    // ================= 2. ระบบ LOGIN =================
-    const SYSTEM_PASSWORD = "1234"; 
+    // โยนภาพไปที่ ImgBB
+    function uploadToImgBB(base64Data, onSuccess, onError) {
+      const base64String = base64Data.split(',')[1]; // เอาแค่ข้อมูล
+      const formData = new FormData();
+      formData.append("image", base64String);
 
-    function handleLogin(e) {
-      e.preventDefault();
-      const pin = document.getElementById('pinInput').value;
-      if (pin === SYSTEM_PASSWORD) {
-        sessionStorage.setItem('dorm_logged_in', 'true');
-        showMainApp();
+      fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: "POST", body: formData
+      })
+      .then(response => response.json())
+      .then(result => {
+        if(result.success) onSuccess(result.data.url);
+        else onError("Upload failed");
+      })
+      .catch(err => onError(err));
+    }
+
+    // อัปโหลดเอกสารเช่า (แก้ไขห้อง)
+    function uploadCloudDoc(event, docType) {
+      const file = event.target.files[0];
+      if (!file) return;
+      document.getElementById('modalLoading').style.display = 'flex';
+      const roomId = document.getElementById('editRoomId').value;
+
+      compressImage(file, base64 => {
+        uploadToImgBB(base64, 
+          (url) => {
+            const r = appData.rooms.find(x => x.id === roomId);
+            r.tenant.docs[docType] = url; 
+            saveToCloud().then(() => {
+              renderDocPreview(url, docType);
+              document.getElementById('modalLoading').style.display = 'none';
+            });
+          }, 
+          (err) => {
+            alert("อัปโหลดไม่สำเร็จ กรุณาเช็ค ImgBB API Key");
+            document.getElementById('modalLoading').style.display = 'none';
+          }
+        );
+      });
+    }
+
+    function deleteCloudDoc(docType) {
+      if(!confirm('ยืนยันลบรูปเอกสาร?')) return;
+      document.getElementById('modalLoading').style.display = 'flex';
+      const roomId = document.getElementById('editRoomId').value;
+      const r = appData.rooms.find(x => x.id === roomId);
+      r.tenant.docs[docType] = ""; 
+      
+      saveToCloud().then(() => {
+        renderDocPreview("", docType);
+        document.getElementById('modalLoading').style.display = 'none';
+      });
+    }
+
+    function viewCloudDoc(docType) {
+      const img = document.getElementById(`preview-${docType}-img`);
+      if(img.src) window.open(img.src, "_blank");
+    }
+
+    function renderDocPreview(url, docType) {
+      if (url) {
+        document.getElementById(`preview-${docType}-img`).src = url;
+        document.getElementById(`preview-${docType}-box`).classList.remove('hidden');
+        document.getElementById(`upload-${docType}-box`).classList.add('hidden');
       } else {
-        alert("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่");
-        document.getElementById('pinInput').value = "";
+        document.getElementById(`preview-${docType}-img`).src = "";
+        document.getElementById(`preview-${docType}-box`).classList.add('hidden');
+        document.getElementById(`upload-${docType}-box`).classList.remove('hidden');
       }
     }
 
-    function handleLogout() {
-      sessionStorage.removeItem('dorm_logged_in');
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('pinInput').value = "";
+    // อัปโหลดรูปมิเตอร์เดือนนั้นๆ
+    function uploadCloudMeter(event, roomId) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const monthStr = document.getElementById('meterBillingMonth').value;
+      const statusSpan = document.getElementById(`meterStatus-${roomId}`);
+      statusSpan.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-500"></i> รออัปโหลด...`;
+
+      compressImage(file, base64 => {
+        uploadToImgBB(base64, 
+          (url) => {
+            if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
+            if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = { paid: false };
+            appData.monthlyRecords[monthStr][roomId].meterUrl = url;
+            saveToCloud().then(() => renderMetersTable());
+          },
+          (err) => {
+             statusSpan.innerHTML = `<span class="text-rose-500">อัปโหลดพลาด</span>`;
+          }
+        );
+      });
     }
 
-    function showMainApp() {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
-      initDocDB().then(() => initApp()); 
+    function deleteCloudMeter(roomId) {
+      if(!confirm('ลบรูปมิเตอร์นี้?')) return;
+      const monthStr = document.getElementById('meterBillingMonth').value;
+      appData.monthlyRecords[monthStr][roomId].meterUrl = "";
+      saveToCloud().then(() => renderMetersTable());
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      if (sessionStorage.getItem('dorm_logged_in') === 'true') showMainApp();
-    });
 
-    // ================= 3. โค้ดฐานข้อมูลหลัก (Rooms & Settings) =================
-    const STORAGE_KEY = "JACKY_PLACE_DORM_DB_V6";
-    let appData = {};
-    const defaultData = {
-      settings: {
-        dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย สาขาขอนแก่น",
-        bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300
-      },
-      rooms: [
-        { id: "1", roomNumber: "1", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "สมชาย ใจดี", nickname: "ชาย", phone: "081-234-5678", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "กข 1111", emergency: "" }, lastMeter: 1240 },
-        { id: "2", roomNumber: "2", price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 850 },
-        { id: "3", roomNumber: "3", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "อนุชา แก้วงาม", nickname: "ชา", phone: "083-456-7890", idCard: "", deposit: 3500, moveIn: "2026-01-15", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 920 },
-        { id: "4", roomNumber: "4", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "วิภาดา สุขใจ", nickname: "วิ", phone: "084-567-8901", idCard: "", deposit: 3500, moveIn: "2026-03-01", moveOut: "", carPlate: "คง 3333", emergency: "" }, lastMeter: 1510 },
-        { id: "5", roomNumber: "5", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ธีรเดช เจริญผล", nickname: "เดช", phone: "085-678-9012", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 740 },
-        { id: "6", roomNumber: "6", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ปิยะมาศ ภูมิดี", nickname: "มาศ", phone: "086-789-0123", idCard: "", deposit: 3500, moveIn: "2026-02-10", moveOut: "", carPlate: "จจ 4444", emergency: "" }, lastMeter: 630 },
-        { id: "7", roomNumber: "7", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "อดิศักดิ์ มั่นคง", nickname: "เอ", phone: "087-890-1234", idCard: "", deposit: 3500, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1100 },
-        { id: "8", roomNumber: "8", price: 3500, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ณัฐพงษ์ ดวงแก้ว", nickname: "นัท", phone: "088-901-2345", idCard: "", deposit: 3500, moveIn: "2026-04-01", moveOut: "", carPlate: "ฉฉ 5555", emergency: "" }, lastMeter: 980 },
-        { id: "9", roomNumber: "9", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ชิดชนก วงศ์ษา", nickname: "นก", phone: "089-012-3456", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "ชช 6666", emergency: "" }, lastMeter: 1420 },
-        { id: "10", roomNumber: "10", price: 3800, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1150 },
-        { id: "11", roomNumber: "11", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ศศิธร บุญญา", nickname: "ศศิ", phone: "091-234-5678", idCard: "", deposit: 3800, moveIn: "2026-02-15", moveOut: "", carPlate: "ญญ 7777", emergency: "" }, lastMeter: 890 },
-        { id: "12", roomNumber: "12", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "พงศกร รัตนผล", nickname: "พงศ", phone: "092-345-6789", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1670 },
-        { id: "14", roomNumber: "14", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "กฤษณา ชัยชนะ", nickname: "กฤษ", phone: "093-456-7890", idCard: "", deposit: 3800, moveIn: "2026-03-20", moveOut: "", carPlate: "ดด 8888", emergency: "" }, lastMeter: 1040 },
-        { id: "15", roomNumber: "15", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "วรเมธ เกียรติคุณ", nickname: "เมธ", phone: "094-567-8901", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 780 },
-        { id: "16", roomNumber: "16", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "จิราพร พรหมมา", nickname: "พร", phone: "095-678-9012", idCard: "", deposit: 3800, moveIn: "2026-02-01", moveOut: "2026-09-15", carPlate: "ตต 9999", emergency: "" }, lastMeter: 1330 },
-        { id: "17", roomNumber: "17", price: 3800, elecPercent: 100, waterPercent: 100, status: "มีผู้เช่า", tenant: { name: "ศุภชัย สิทธิโชค", nickname: "ชัย", phone: "096-789-0123", idCard: "", deposit: 3800, moveIn: "2026-01-01", moveOut: "", carPlate: "", emergency: "" }, lastMeter: 1210 }
-      ],
-      monthlyRecords: {},
-      monthlyExpenses: {}
-    };
-
-    function initApp() {
-      // พยายามโหลด V5 เพื่อย้ายข้อมูลมา V6 อัตโนมัติ (เผื่อผู้ใช้มีของเก่า)
-      const savedV5 = localStorage.getItem("JACKY_PLACE_DORM_DB_V5");
-      const savedV6 = localStorage.getItem(STORAGE_KEY);
-      
-      if (savedV6) {
-          appData = JSON.parse(savedV6);
-      } else if (savedV5) {
-          appData = JSON.parse(savedV5);
-          // ตั้งค่าเปอเซนต์เริ่มต้นให้ V5
-          appData.rooms.forEach(r => {
-              if (r.elecPercent === undefined) r.elecPercent = 100;
-              if (r.waterPercent === undefined) r.waterPercent = 100;
-          });
-          saveToStorage();
-      } else {
-          appData = defaultData;
-          saveToStorage();
-      }
-
-      if (!appData.monthlyExpenses) appData.monthlyExpenses = {};
-
-      const now = new Date();
-      const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      document.getElementById('meterBillingMonth').value = curMonthStr;
-      document.getElementById('billingMonthSelector').value = curMonthStr;
-      document.getElementById('summaryMonthSelector').value = curMonthStr;
-      
-      updateHeaderAndSettings(); 
-      renderDashboard(); 
-      renderRoomsTable(); 
-      renderMetersTable(); 
-      renderBillingList();
-    }
+    // ================= โลจิกทั่วไปของระบบ =================
     
-    function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
-    
+    function createDefaultData() {
+      return {
+        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300 },
+        rooms: Array.from({length: 16}, (_, i) => {
+          let n = i < 8 ? 101+i : 201+(i-8); 
+          let p = i < 8 ? 3500 : 3800;
+          return { id: String(n), roomNumber: String(n), price: p, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 1000 };
+        }),
+        monthlyRecords: {}, monthlyExpenses: {}
+      };
+    }
+
     function calculateRoomRent(room, monthStr) {
       if (room.status !== 'มีผู้เช่า') return { rent: 0, days: 0, totalDays: 30 };
-      
-      let [y, m] = monthStr.split('-');
-      y = parseInt(y); m = parseInt(m);
-      
+      let [y, m] = monthStr.split('-'); y = parseInt(y); m = parseInt(m);
       let totalDays = new Date(y, m, 0).getDate();
       let startDay = 1; let endDay = totalDays;
-
       let moveInDate = room.tenant.moveIn ? new Date(room.tenant.moveIn) : null;
       let moveOutDate = room.tenant.moveOut ? new Date(room.tenant.moveOut) : null;
 
-      if (moveInDate && moveInDate.getFullYear() === y && (moveInDate.getMonth() + 1) === m) {
-          startDay = moveInDate.getDate();
-      } else if (moveInDate && (moveInDate.getFullYear() > y || (moveInDate.getFullYear() === y && (moveInDate.getMonth() + 1) > m))) {
-          return { rent: 0, days: 0, totalDays }; 
-      }
-
-      if (moveOutDate && moveOutDate.getFullYear() === y && (moveOutDate.getMonth() + 1) === m) {
-          endDay = moveOutDate.getDate();
-      } else if (moveOutDate && (moveOutDate.getFullYear() < y || (moveOutDate.getFullYear() === y && (moveOutDate.getMonth() + 1) < m))) {
-          return { rent: 0, days: 0, totalDays }; 
-      }
+      if (moveInDate && moveInDate.getFullYear() === y && (moveInDate.getMonth() + 1) === m) startDay = moveInDate.getDate();
+      else if (moveInDate && (moveInDate.getFullYear() > y || (moveInDate.getFullYear() === y && (moveInDate.getMonth() + 1) > m))) return { rent: 0, days: 0, totalDays }; 
+      if (moveOutDate && moveOutDate.getFullYear() === y && (moveOutDate.getMonth() + 1) === m) endDay = moveOutDate.getDate();
+      else if (moveOutDate && (moveOutDate.getFullYear() < y || (moveOutDate.getFullYear() === y && (moveOutDate.getMonth() + 1) < m))) return { rent: 0, days: 0, totalDays }; 
 
       let daysStayed = endDay - startDay + 1;
-      if (daysStayed < 0) daysStayed = 0;
-      if (daysStayed > totalDays) daysStayed = totalDays;
-
+      if (daysStayed < 0) daysStayed = 0; if (daysStayed > totalDays) daysStayed = totalDays;
       let actualRent = room.price;
-      if (daysStayed < totalDays && daysStayed > 0) {
-          actualRent = Math.round((room.price / totalDays) * daysStayed);
-      } else if (daysStayed === 0) {
-          actualRent = 0;
-      }
+      if (daysStayed < totalDays && daysStayed > 0) actualRent = Math.round((room.price / totalDays) * daysStayed);
+      else if (daysStayed === 0) actualRent = 0;
       return { rent: actualRent, days: daysStayed, totalDays };
     }
 
     function formatDateTH(dateStr) {
-      if (!dateStr) return '-';
-      const [y, m, d] = dateStr.split('-');
-      return `${d}/${m}/${y}`;
+      if (!dateStr) return '-'; const [y, m, d] = dateStr.split('-'); return `${d}/${m}/${y}`;
     }
 
     function updateHeaderAndSettings() {
       document.getElementById('headerDormName').textContent = appData.settings.dormName;
-      document.getElementById('headerDormSub').textContent = appData.settings.dormAddress;
       document.getElementById('setDormName').value = appData.settings.dormName;
       document.getElementById('setDormAddress').value = appData.settings.dormAddress;
       document.getElementById('setBankAccName').value = appData.settings.bankAccName;
@@ -657,14 +634,11 @@
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(el => {
-        el.classList.remove('border-indigo-700', 'text-indigo-700'); 
-        el.classList.add('border-transparent', 'text-slate-500');
+        el.classList.remove('border-indigo-700', 'text-indigo-700'); el.classList.add('border-transparent', 'text-slate-500');
       });
       document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-      activeBtn.classList.remove('border-transparent', 'text-slate-500'); 
-      activeBtn.classList.add('border-indigo-700', 'text-indigo-700');
-      
+      document.getElementById(`tab-btn-${tabId}`).classList.remove('border-transparent', 'text-slate-500'); 
+      document.getElementById(`tab-btn-${tabId}`).classList.add('border-indigo-700', 'text-indigo-700');
       if (tabId === 'dashboard') renderDashboard(); 
       if (tabId === 'rooms') renderRoomsTable(); 
       if (tabId === 'meters') renderMetersTable(); 
@@ -672,7 +646,6 @@
       if (tabId === 'summary') renderSummary();
     }
 
-    // ====== Dashboard ======
     function renderDashboard() { 
       const total = appData.rooms.length;
       const occupied = appData.rooms.filter(r => r.status === 'มีผู้เช่า').length;
@@ -688,17 +661,11 @@
           const rec = mData[r.id] || {};
           const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
           const units = Math.max(0, curMeter - r.lastMeter);
-          
           const rentData = calculateRoomRent(r, mStr);
           if (rentData.days > 0) {
-            const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
-            const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
-            
-            const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
-            const waterCost = appData.settings.rateWater * (waterPercent / 100);
-
-            const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon;
-            totalBilled += total;
+            const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100) / 100);
+            const waterCost = appData.settings.rateWater * ((r.waterPercent||100) / 100);
+            totalBilled += rentData.rent + elecCost + waterCost + appData.settings.rateCommon;
             if (rec.paid) paidCount++;
           }
         }
@@ -711,102 +678,53 @@
       appData.rooms.forEach(r => {
         const isOccupied = r.status === 'มีผู้เช่า';
         const isMovingOut = isOccupied && r.tenant.moveOut; 
-
         let nameDisplay = '-';
-        if (isOccupied) {
-            if (r.tenant.nickname) nameDisplay = r.tenant.nickname;
-            else if (r.tenant.name) nameDisplay = r.tenant.name.split(' ')[0];
-            else nameDisplay = 'ไม่ระบุชื่อ';
-        }
+        if (isOccupied) nameDisplay = r.tenant.nickname || r.tenant.name?.split(' ')[0] || 'ไม่ระบุ';
 
         const bgClass = isMovingOut ? 'bg-rose-50 border-rose-400 shadow-md' : (isOccupied ? 'bg-indigo-50 border-indigo-200 hover:shadow-md' : 'bg-slate-50 border-slate-200 opacity-70');
-        const textClass = isMovingOut ? 'text-rose-900' : (isOccupied ? 'text-indigo-900' : 'text-slate-500');
-        const nameClass = isMovingOut ? 'text-rose-700' : 'text-indigo-600';
         const badgeClass = isMovingOut ? 'text-rose-600' : 'text-emerald-600';
-
-        const moveInStr = formatDateTH(r.tenant.moveIn);
-        const moveOutStr = formatDateTH(r.tenant.moveOut);
-
-        const div = document.createElement('div');
-        div.className = `p-2 rounded-lg border text-center cursor-pointer transition flex flex-col justify-between ${bgClass}`;
-        div.onclick = () => { switchTab('rooms'); openEditRoomModal(r.id); };
         
-        let detailsHtml = '';
-        if (isOccupied) {
-          detailsHtml = `
-            <div class="text-[9px] text-slate-500 mt-1 bg-white rounded border py-0.5 px-1 text-left leading-tight shadow-sm">
-              <span class="text-emerald-600">เข้า:</span> ${moveInStr}<br>
-              <span class="text-rose-500">ออก:</span> ${moveOutStr}
-            </div>
-          `;
-        }
+        let det = '';
+        if(isOccupied) det = `<div class="text-[9px] text-slate-500 mt-1 bg-white rounded border py-0.5 px-1 text-left"><span class="text-emerald-600">เข้า:</span> ${formatDateTH(r.tenant.moveIn)}<br><span class="text-rose-500">ออก:</span> ${formatDateTH(r.tenant.moveOut)}</div>`;
 
-        div.innerHTML = `
-          <div>
-            <div class="text-sm font-bold ${textClass}">ห้อง ${r.roomNumber}</div>
-            <div class="text-[12px] font-bold ${nameClass} mt-0.5 truncate h-4">${isOccupied ? nameDisplay : ''}</div>
-            <div class="text-[11px] text-slate-600 mt-0.5">${r.price.toLocaleString()} บ.</div>
-            <div class="text-[10px] mt-0.5 font-bold ${badgeClass}">${isMovingOut ? '<i class="fa-solid fa-triangle-exclamation"></i> แจ้งออก' : r.status}</div>
+        grid.innerHTML += `
+          <div onclick="switchTab('rooms'); openEditRoomModal('${r.id}');" class="p-2 rounded-lg border text-center cursor-pointer transition flex flex-col justify-between ${bgClass}">
+            <div>
+              <div class="text-sm font-bold ${isMovingOut?'text-rose-900':'text-indigo-900'}">ห้อง ${r.roomNumber}</div>
+              <div class="text-[12px] font-bold ${isMovingOut?'text-rose-700':'text-indigo-600'} mt-0.5 h-4 truncate">${isOccupied ? nameDisplay : ''}</div>
+              <div class="text-[11px] text-slate-600 mt-0.5">${r.price.toLocaleString()} บ.</div>
+              <div class="text-[10px] mt-0.5 font-bold ${badgeClass}">${isMovingOut ? 'แจ้งออก' : r.status}</div>
+            </div>
+            ${det}
           </div>
-          ${detailsHtml}
         `;
-        grid.appendChild(div);
       });
     }
 
-    // ====== Rooms ======
     function renderRoomsTable() { 
-      const tbody = document.getElementById('tenantTableBody'); 
-      tbody.innerHTML = '';
+      const tbody = document.getElementById('tenantTableBody'); tbody.innerHTML = '';
       appData.rooms.forEach(r => {
-        let fullNameDisplay = '<span class="text-slate-400">-</span>';
-        if (r.tenant.name || r.tenant.nickname) {
-            let n = r.tenant.name || '';
-            let nn = r.tenant.nickname ? ` (${r.tenant.nickname})` : '';
-            fullNameDisplay = n + nn;
-        }
-
+        let fn = '-';
+        if (r.tenant.name || r.tenant.nickname) fn = (r.tenant.name||'') + (r.tenant.nickname ? ` (${r.tenant.nickname})` : '');
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
-            <td class="px-4 py-2 font-bold text-indigo-900">ห้อง ${r.roomNumber}</td>
-            <td class="px-4 py-2">${r.price.toLocaleString()}</td>
-            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs rounded-full ${r.status==='มีผู้เช่า'?'bg-emerald-100 text-emerald-800':'bg-slate-200 text-slate-700'}">${r.status}</span></td>
-            <td class="px-4 py-2">${fullNameDisplay}</td>
-            <td class="px-4 py-2">${r.tenant.phone || '-'}</td>
-            <td class="px-4 py-2 text-center"><button onclick="openEditRoomModal('${r.id}')" class="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-3 py-1 rounded text-xs font-semibold">แก้ไข/แนบไฟล์</button></td>
+            <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${r.price.toLocaleString()}</td>
+            <td class="px-4 py-2"><span class="px-2 text-xs rounded-full ${r.status==='มีผู้เช่า'?'bg-emerald-100':'bg-slate-200'}">${r.status}</span></td>
+            <td class="px-4 py-2">${fn}</td><td class="px-4 py-2">${r.tenant.phone||'-'}</td>
+            <td class="px-4 py-2 text-center"><button onclick="openEditRoomModal('${r.id}')" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded text-xs">แก้ไข/แนบไฟล์</button></td>
           </tr>
         `;
       });
     }
     
-    async function loadDocumentPreview(roomId, docType) {
-      const base64 = await getDocumentFromDB(roomId, docType);
-      const previewBox = document.getElementById(`preview-${docType}-box`);
-      const uploadBox = document.getElementById(`upload-${docType}-box`);
-      const img = document.getElementById(`preview-${docType}-img`);
-      
-      if (base64) {
-        img.src = base64;
-        previewBox.classList.remove('hidden');
-        uploadBox.classList.add('hidden');
-      } else {
-        img.src = '';
-        previewBox.classList.add('hidden');
-        uploadBox.classList.remove('hidden');
-      }
-    }
-
     function openEditRoomModal(id) { 
       const r = appData.rooms.find(x => x.id === id);
-      document.getElementById('modalRoomTitle').textContent = `แก้ไขข้อมูลห้อง ${r.roomNumber}`;
+      document.getElementById('modalRoomTitle').textContent = `ห้อง ${r.roomNumber}`;
       document.getElementById('editRoomId').value = r.id;
       document.getElementById('editRoomPrice').value = r.price;
       document.getElementById('editRoomStatus').value = r.status;
-      
-      // การตั้งค่าเปอร์เซ็นต์
       document.getElementById('editElecPercent').value = r.elecPercent !== undefined ? r.elecPercent : 100;
       document.getElementById('editWaterPercent').value = r.waterPercent !== undefined ? r.waterPercent : 100;
-
       document.getElementById('editTenantName').value = r.tenant.name || '';
       document.getElementById('editTenantNickname').value = r.tenant.nickname || '';
       document.getElementById('editTenantPhone').value = r.tenant.phone || '';
@@ -817,35 +735,12 @@
       document.getElementById('editCarPlate').value = r.tenant.carPlate || '';
       document.getElementById('editEmergencyContact').value = r.tenant.emergency || '';
       
-      loadDocumentPreview(id, 'contract');
-      loadDocumentPreview(id, 'idcard');
-      loadDocumentPreview(id, 'house');
+      const docs = r.tenant.docs || {};
+      renderDocPreview(docs.contract, 'contract');
+      renderDocPreview(docs.idcard, 'idcard');
+      renderDocPreview(docs.house, 'house');
 
       document.getElementById('tenantModal').classList.remove('hidden'); 
-    }
-
-    function handleDocUpload(event, docType) {
-      const file = event.target.files[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) { alert('กรุณาอัปโหลดเฉพาะไฟล์รูปภาพ (JPG, PNG)'); return; }
-      const roomId = document.getElementById('editRoomId').value;
-      compressImage(file, async (base64) => {
-        await saveDocumentToDB(roomId, docType, base64);
-        loadDocumentPreview(roomId, docType); 
-      });
-    }
-
-    async function deleteDoc(docType) {
-      if(confirm('ต้องการลบรูปภาพเอกสารนี้ใช่หรือไม่?')) {
-        const roomId = document.getElementById('editRoomId').value;
-        await deleteDocumentFromDB(roomId, docType);
-        loadDocumentPreview(roomId, docType);
-      }
-    }
-
-    function viewDoc(docType) {
-      const img = document.getElementById(`preview-${docType}-img`);
-      if(img.src) { const win = window.open(); win.document.write(`<img src="${img.src}" style="max-width:100%; display:block; margin:auto;">`); }
     }
 
     function saveTenantData(e) {
@@ -854,12 +749,8 @@
       const r = appData.rooms.find(x => x.id === id);
       r.price = parseFloat(document.getElementById('editRoomPrice').value) || 0;
       r.status = document.getElementById('editRoomStatus').value;
-
-      let ep = parseFloat(document.getElementById('editElecPercent').value);
-      r.elecPercent = isNaN(ep) ? 100 : ep;
-      let wp = parseFloat(document.getElementById('editWaterPercent').value);
-      r.waterPercent = isNaN(wp) ? 100 : wp;
-
+      r.elecPercent = parseFloat(document.getElementById('editElecPercent').value) || 100;
+      r.waterPercent = parseFloat(document.getElementById('editWaterPercent').value) || 100;
       r.tenant.name = document.getElementById('editTenantName').value;
       r.tenant.nickname = document.getElementById('editTenantNickname').value;
       r.tenant.phone = document.getElementById('editTenantPhone').value;
@@ -869,45 +760,52 @@
       r.tenant.moveOut = document.getElementById('editMoveOut').value;
       r.tenant.carPlate = document.getElementById('editCarPlate').value;
       r.tenant.emergency = document.getElementById('editEmergencyContact').value;
-      saveToStorage(); closeModal('tenantModal'); renderRoomsTable(); renderDashboard();
+      
+      saveToCloud().then(() => {
+        closeModal('tenantModal'); renderRoomsTable(); renderDashboard();
+      });
     }
 
-    // ====== Meters & OCR ======
+    // ====== Meters ======
     function renderMetersTable() { 
       const monthStr = document.getElementById('meterBillingMonth').value;
-      const tbody = document.getElementById('meterTableBody');
-      tbody.innerHTML = '';
+      const tbody = document.getElementById('meterTableBody'); tbody.innerHTML = '';
       if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
       const curMonthData = appData.monthlyRecords[monthStr];
 
       appData.rooms.forEach(r => {
-        if(r.status !== 'มีผู้เช่า') return;
-
-        const rentData = calculateRoomRent(r, monthStr);
-        if(rentData.days === 0) return;
-
-        const record = curMonthData[r.id] || { curMeter: r.lastMeter };
+        if(r.status !== 'มีผู้เช่า' || calculateRoomRent(r, monthStr).days === 0) return;
+        const rec = curMonthData[r.id] || { curMeter: r.lastMeter };
         const prevMeter = r.lastMeter;
-        const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
+        const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
         const units = Math.max(0, curMeter - prevMeter);
-        
-        const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
-        const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
-        const percentBadge = elecPercent !== 100 ? ` <span class="text-rose-500 text-[10px]">(${elecPercent}%)</span>` : '';
+        const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100) / 100);
+
+        let meterPhotoHtml = `
+          <label class="cursor-pointer bg-white border px-2 py-1 rounded text-xs hover:bg-slate-100 inline-block w-full text-center">
+            <i class="fa-solid fa-camera text-indigo-600"></i> อัปโหลดรูป <input type="file" accept="image/*" class="hidden" onchange="uploadCloudMeter(event, '${r.id}')">
+          </label>
+        `;
+        if (rec.meterUrl) {
+          meterPhotoHtml = `
+            <div class="flex items-center gap-2">
+              <a href="${rec.meterUrl}" target="_blank" class="w-12 h-8 rounded border overflow-hidden block">
+                <img src="${rec.meterUrl}" class="w-full h-full object-cover">
+              </a>
+              <button onclick="deleteCloudMeter('${r.id}')" class="text-red-500 hover:bg-red-100 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `;
+        }
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
-            <td class="px-4 py-2 font-bold text-slate-800">ห้อง ${r.roomNumber}</td>
-            <td class="px-4 py-2 font-mono text-slate-500">${prevMeter}</td>
-            <td class="px-4 py-2"><input type="number" id="meterInput-${r.id}" value="${curMeter}" class="w-24 px-2 py-1 border rounded text-sm font-mono font-bold text-indigo-700 bg-white" onchange="updateSingleMeter('${r.id}', this.value)"></td>
+            <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${prevMeter}</td>
+            <td class="px-4 py-2"><input type="number" value="${curMeter}" class="w-24 px-2 py-1 border rounded text-sm text-indigo-700 bg-white" onchange="updateSingleMeter('${r.id}', this.value)"></td>
             <td class="px-4 py-2">
-              <div class="flex items-center gap-1.5 text-xs">
-                <label class="px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded cursor-pointer border"><i class="fa-solid fa-camera text-indigo-600"></i> เลือกรูป <input type="file" accept="image/*" class="hidden" onchange="handleOcrUpload(event, '${r.id}')"></label>
-                <span id="ocrStatus-${r.id}" class="text-slate-400"></span>
-              </div>
+              <div id="meterStatus-${r.id}">${meterPhotoHtml}</div>
             </td>
-            <td class="px-4 py-2 font-mono font-semibold" id="units-${r.id}">${units}</td>
-            <td class="px-4 py-2 font-bold" id="cost-${r.id}">${elecCost.toLocaleString()} บ.${percentBadge}</td>
+            <td class="px-4 py-2" id="units-${r.id}">${units}</td>
+            <td class="px-4 py-2 font-bold" id="cost-${r.id}">${elecCost.toLocaleString()} บ.</td>
           </tr>
         `;
       });
@@ -915,91 +813,43 @@
 
     function updateSingleMeter(roomId, val) {
       const monthStr = document.getElementById('meterBillingMonth').value;
-      const numVal = parseFloat(val) || 0;
       if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
-      if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = { paid: false };
-      appData.monthlyRecords[monthStr][roomId].curMeter = numVal;
+      if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = {};
+      appData.monthlyRecords[monthStr][roomId].curMeter = parseFloat(val) || 0;
       
-      const r = appData.rooms.find(x => x.id === roomId);
-      const units = Math.max(0, numVal - r.lastMeter);
-      const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
-      const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
-
-      document.getElementById(`units-${roomId}`).textContent = units;
-      document.getElementById(`cost-${roomId}`).innerHTML = `${elecCost.toLocaleString()} บ.` + (elecPercent !== 100 ? ` <span class="text-rose-500 text-[10px]">(${elecPercent}%)</span>` : '');
-      saveToStorage();
+      saveToCloud().then(() => renderMetersTable());
     }
 
-    async function handleOcrUpload(event, roomId) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const statusSpan = document.getElementById(`ocrStatus-${roomId}`);
-      statusSpan.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> รอสักครู่...`;
-      try {
-        const result = await Tesseract.recognize(file, 'eng');
-        const matches = result.data.text.match(/\d+/g);
-        if (matches && matches.length > 0) {
-          const candidate = matches.find(m => m.length >= 3 && m.length <= 6) || matches[0];
-          document.getElementById(`meterInput-${roomId}`).value = candidate;
-          updateSingleMeter(roomId, candidate);
-          statusSpan.innerHTML = `<span class="text-emerald-600">ได้เลข: ${candidate}</span>`;
-        } else {
-          statusSpan.innerHTML = `<span class="text-amber-600">สแกนไม่พบ</span>`;
-        }
-      } catch (err) { statusSpan.innerHTML = `<span class="text-rose-500">ขัดข้อง</span>`; }
-    }
-
-    // ====== Billing ======
+    // ====== Billing & Summary ======
     function renderBillingList() { 
       const monthStr = document.getElementById('billingMonthSelector').value;
-      const tbody = document.getElementById('billingTableBody');
-      tbody.innerHTML = '';
+      const tbody = document.getElementById('billingTableBody'); tbody.innerHTML = '';
       const curMonthData = appData.monthlyRecords[monthStr] || {};
 
       appData.rooms.forEach(r => {
         if (r.status !== 'มีผู้เช่า') return;
-        
         const rentData = calculateRoomRent(r, monthStr);
         if(rentData.days === 0) return; 
 
-        const record = curMonthData[r.id] || { curMeter: r.lastMeter, paid: false };
+        const record = curMonthData[r.id] || {};
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
         const units = Math.max(0, curMeter - r.lastMeter);
-        
-        const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
-        const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
-        const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
-        const waterCost = appData.settings.rateWater * (waterPercent / 100);
-
+        const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100)/100);
+        const waterCost = appData.settings.rateWater * ((r.waterPercent||100)/100);
         const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon;
         const isPaid = record.paid || false;
 
-        let rentDisplay = rentData.rent.toLocaleString();
-        if(rentData.days < rentData.totalDays) rentDisplay += ` <br><span class="text-[10px] text-rose-600">(${rentData.days} วัน)</span>`;
-
-        let elecDisp = `${elecCost.toLocaleString()} (${units} น.)`;
-        if (elecPercent !== 100) elecDisp += `<br><span class="text-[10px] text-rose-500">${elecPercent}%</span>`;
-        
-        let waterDisp = `${waterCost.toLocaleString()}`;
-        if (waterPercent !== 100) waterDisp += `<br><span class="text-[10px] text-rose-500">${waterPercent}%</span>`;
+        let rDisp = rentData.rent.toLocaleString(); if(rentData.days < rentData.totalDays) rDisp += ` <br><span class="text-[10px] text-rose-600">(${rentData.days} วัน)</span>`;
+        let eDisp = `${elecCost.toLocaleString()}`; if((r.elecPercent||100)!==100) eDisp += ` <span class="text-[10px] text-rose-500">(${r.elecPercent}%)</span>`;
+        let wDisp = `${waterCost.toLocaleString()}`; if((r.waterPercent||100)!==100) wDisp += ` <span class="text-[10px] text-rose-500">(${r.waterPercent}%)</span>`;
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
-            <td class="px-4 py-2 font-bold text-slate-800">ห้อง ${r.roomNumber}</td>
-            <td class="px-4 py-2">${r.tenant.name || '-'}</td>
-            <td class="px-4 py-2">${rentDisplay}</td>
-            <td class="px-4 py-2">${elecDisp}</td>
-            <td class="px-4 py-2">${waterDisp}</td>
-            <td class="px-4 py-2">${appData.settings.rateCommon.toLocaleString()}</td>
+            <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${r.tenant.name || '-'}</td>
+            <td class="px-4 py-2">${rDisp}</td><td class="px-4 py-2">${eDisp}</td><td class="px-4 py-2">${wDisp}</td><td class="px-4 py-2">${appData.settings.rateCommon}</td>
             <td class="px-4 py-2 font-bold text-indigo-700">${total.toLocaleString()}</td>
-            <td class="px-4 py-2">
-              <button onclick="togglePaidStatus('${monthStr}', '${r.id}')" class="px-2 py-1 text-xs rounded-full font-semibold ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                ${isPaid ? 'ชำระแล้ว' : 'รอชำระ'}
-              </button>
-            </td>
-            <td class="px-4 py-2 text-center">
-              <button onclick="openInvoiceModal('${r.id}')" class="px-3 py-1 bg-indigo-700 text-white rounded text-xs shadow-sm"><i class="fa-solid fa-eye"></i> ดูบิล</button>
-            </td>
+            <td class="px-4 py-2"><button onclick="togglePaidStatus('${monthStr}', '${r.id}')" class="px-2 py-1 text-xs rounded-full ${isPaid?'bg-emerald-100 text-emerald-800':'bg-amber-100'}">${isPaid?'ชำระแล้ว':'รอชำระ'}</button></td>
+            <td class="px-4 py-2"><button onclick="openInvoiceModal('${r.id}')" class="px-3 py-1 bg-indigo-700 text-white rounded text-xs"><i class="fa-solid fa-eye"></i> ดูบิล</button></td>
           </tr>
         `;
       });
@@ -1007,92 +857,11 @@
 
     function togglePaidStatus(monthStr, roomId) {
       if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
-      if (!appData.monthlyRecords[monthStr][roomId]) {
-        const r = appData.rooms.find(x => x.id === roomId);
-        appData.monthlyRecords[monthStr][roomId] = { curMeter: r.lastMeter, paid: false };
-      }
+      if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = {};
       appData.monthlyRecords[monthStr][roomId].paid = !appData.monthlyRecords[monthStr][roomId].paid;
-      saveToStorage(); renderBillingList(); renderDashboard();
-      if (!document.getElementById('tab-summary').classList.contains('hidden')) renderSummary();
+      saveToCloud().then(() => { renderBillingList(); renderDashboard(); });
     }
 
-    let currentInvoiceData = {};
-    function openInvoiceModal(roomId) {
-      const monthStr = document.getElementById('billingMonthSelector').value;
-      const r = appData.rooms.find(x => x.id === roomId);
-      const rentData = calculateRoomRent(r, monthStr);
-      
-      const curMonthData = appData.monthlyRecords[monthStr] || {};
-      const record = curMonthData[r.id] || { curMeter: r.lastMeter };
-      const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
-      const units = Math.max(0, curMeter - r.lastMeter);
-      
-      const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
-      const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
-      const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
-      const waterCost = appData.settings.rateWater * (waterPercent / 100);
-      const commonCost = appData.settings.rateCommon;
-      
-      const total = rentData.rent + elecCost + waterCost + commonCost;
-
-      currentInvoiceData = {
-        dormName: appData.settings.dormName, dormAddress: appData.settings.dormAddress, monthStr: monthStr,
-        roomNumber: r.roomNumber, tenantName: r.tenant.name || "ผู้เช่าห้อง "+r.roomNumber, 
-        roomPrice: rentData.rent, days: rentData.days, totalDays: rentData.totalDays,
-        prevMeter: r.lastMeter, curMeter: curMeter, units: units, elecCost: elecCost, waterCost: waterCost, commonCost: commonCost, total: total,
-        bankName: appData.settings.bankName, bankAcc: appData.settings.bankAccNumber, bankOwner: appData.settings.bankAccName,
-        elecPercent: elecPercent, waterPercent: waterPercent
-      };
-
-      document.getElementById('invDormName').textContent = currentInvoiceData.dormName;
-      document.getElementById('invDormAddress').textContent = currentInvoiceData.dormAddress;
-      document.getElementById('invMonth').textContent = `ประจำเดือน: ${monthStr}`;
-      document.getElementById('invRoomNumber').textContent = currentInvoiceData.roomNumber;
-      document.getElementById('invTenantName').textContent = currentInvoiceData.tenantName;
-      
-      const roomLabel = document.getElementById('invRoomLabel');
-      if (rentData.days < rentData.totalDays) {
-          roomLabel.innerHTML = `ค่าเช่าห้องพัก <span class="text-rose-600 text-[10px]">(${rentData.days} วัน)</span>`;
-      } else {
-          roomLabel.textContent = "ค่าเช่าห้องพัก";
-      }
-      document.getElementById('invRoomPrice').textContent = currentInvoiceData.roomPrice.toLocaleString()+".00";
-
-      let elecDetail = `มิเตอร์: ${currentInvoiceData.prevMeter} ➔ ${currentInvoiceData.curMeter}`;
-      if (elecPercent !== 100) elecDetail += ` (คิด ${elecPercent}%)`;
-      document.getElementById('invMeterDetails').textContent = elecDetail;
-      document.getElementById('invElecUnits').textContent = units;
-      document.getElementById('invElecCost').textContent = currentInvoiceData.elecCost.toLocaleString()+".00";
-      
-      let waterLabel = `ค่าน้ำประปา`;
-      if (waterPercent !== 100) waterLabel += ` <span class="text-rose-600 text-[10px]">(${waterPercent}%)</span>`;
-      document.getElementById('invWaterLabel').innerHTML = waterLabel;
-      document.getElementById('invWaterCost').textContent = currentInvoiceData.waterCost.toLocaleString()+".00";
-      
-      document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString()+".00";
-      document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString()+" บาท";
-      document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
-      document.getElementById('invBankAcc').textContent = currentInvoiceData.bankAcc;
-      document.getElementById('invBankOwner').textContent = currentInvoiceData.bankOwner;
-      document.getElementById('invoiceModal').classList.remove('hidden');
-    }
-
-    function copyLineBill() {
-      const d = currentInvoiceData;
-      let roomRentText = `1. ค่าเช่า: ${d.roomPrice.toLocaleString()} บ.`;
-      if (d.days < d.totalDays) roomRentText = `1. ค่าเช่า (${d.days} วัน): ${d.roomPrice.toLocaleString()} บ.`;
-
-      let elecText = `2. ค่าไฟ (${d.units} หน่วย): ${d.elecCost.toLocaleString()} บ.`;
-      if (d.elecPercent !== 100) elecText = `2. ค่าไฟ (${d.units} น. คิด ${d.elecPercent}%): ${d.elecCost.toLocaleString()} บ.`;
-
-      let waterText = `3. ค่าน้ำ: ${d.waterCost.toLocaleString()} บ.`;
-      if (d.waterPercent !== 100) waterText = `3. ค่าน้ำ (คิด ${d.waterPercent}%): ${d.waterCost.toLocaleString()} บ.`;
-
-      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${roomRentText}\n${elecText}\n${waterText}\n4. ส่วนกลาง: ${d.commonCost.toLocaleString()} บ.\n━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
-      navigator.clipboard.writeText(text).then(() => alert("คัดลอกข้อความสำเร็จ นำไปวางส่งใน LINE ได้เลย!")).catch(() => alert("คัดลอกไม่สำเร็จ"));
-    }
-
-    // ====== Summary ======
     function renderSummary() {
       const monthStr = document.getElementById('summaryMonthSelector').value;
       let totalExpected = 0; let totalCollected = 0;
@@ -1105,16 +874,8 @@
             const rec = mData[r.id] || {};
             const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
             const units = Math.max(0, curMeter - r.lastMeter);
-            
-            const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
-            const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
-            const elecCost = (units * appData.settings.rateElectric) * (elecPercent / 100);
-            const waterCost = appData.settings.rateWater * (waterPercent / 100);
-
-            const bill = rentData.rent + elecCost + waterCost + appData.settings.rateCommon;
-            
-            totalExpected += bill;
-            if (rec.paid) totalCollected += bill;
+            const bill = rentData.rent + ((units * appData.settings.rateElectric)*((r.elecPercent||100)/100)) + (appData.settings.rateWater*((r.waterPercent||100)/100)) + appData.settings.rateCommon;
+            totalExpected += bill; if (rec.paid) totalCollected += bill;
           }
         }
       });
@@ -1122,38 +883,87 @@
       document.getElementById('sumExpectedIncome').textContent = totalExpected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
       document.getElementById('sumCollectedIncome').textContent = totalCollected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-      const exp = appData.monthlyExpenses[monthStr] || { electric: 0, water: 0, maintenance: 0, other: 0 };
-      document.getElementById('expElectric').value = exp.electric || '';
-      document.getElementById('expWater').value = exp.water || '';
-      document.getElementById('expMaintenance').value = exp.maintenance || '';
-      document.getElementById('expOther').value = exp.other || '';
+      const exp = appData.monthlyExpenses[monthStr] || {};
+      document.getElementById('expElectric').value = exp.electric || ''; document.getElementById('expWater').value = exp.water || '';
+      document.getElementById('expMaintenance').value = exp.maintenance || ''; document.getElementById('expOther').value = exp.other || '';
 
-      const totalExp = (exp.electric || 0) + (exp.water || 0) + (exp.maintenance || 0) + (exp.other || 0);
+      const totalExp = (exp.electric||0) + (exp.water||0) + (exp.maintenance||0) + (exp.other||0);
       document.getElementById('sumTotalExpense').textContent = totalExp.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
+      
       const netProfit = totalCollected - totalExp;
-      const profitEl = document.getElementById('sumNetProfit');
-      profitEl.textContent = netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-      if (netProfit >= 0) profitEl.className = "text-4xl font-bold tracking-wider text-emerald-400";
-      else profitEl.className = "text-4xl font-bold tracking-wider text-rose-400";
+      document.getElementById('sumNetProfit').textContent = netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
     function saveExpenses(e) {
       e.preventDefault();
       const monthStr = document.getElementById('summaryMonthSelector').value;
       if (!appData.monthlyExpenses[monthStr]) appData.monthlyExpenses[monthStr] = {};
-      
       appData.monthlyExpenses[monthStr] = {
-        electric: parseFloat(document.getElementById('expElectric').value) || 0,
-        water: parseFloat(document.getElementById('expWater').value) || 0,
-        maintenance: parseFloat(document.getElementById('expMaintenance').value) || 0,
-        other: parseFloat(document.getElementById('expOther').value) || 0
+        electric: parseFloat(document.getElementById('expElectric').value) || 0, water: parseFloat(document.getElementById('expWater').value) || 0,
+        maintenance: parseFloat(document.getElementById('expMaintenance').value) || 0, other: parseFloat(document.getElementById('expOther').value) || 0
       };
-      
-      saveToStorage(); renderSummary(); alert('บันทึกข้อมูลรายจ่ายประจำเดือนเรียบร้อยแล้ว');
+      saveToCloud().then(() => { renderSummary(); alert('บันทึกข้อมูลรายจ่ายประจำเดือนเรียบร้อยแล้ว'); });
     }
 
-    // ====== Settings & Backup ======
+    // ====== Invoice ======
+    let currentInvoiceData = {};
+    function openInvoiceModal(roomId) {
+      const monthStr = document.getElementById('billingMonthSelector').value;
+      const r = appData.rooms.find(x => x.id === roomId);
+      const rentData = calculateRoomRent(r, monthStr);
+      const curMonthData = appData.monthlyRecords[monthStr] || {};
+      const record = curMonthData[r.id] || {};
+      const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
+      const units = Math.max(0, curMeter - r.lastMeter);
+      const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100)/100);
+      const waterCost = appData.settings.rateWater * ((r.waterPercent||100)/100);
+      const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon;
+
+      currentInvoiceData = {
+        dormName: appData.settings.dormName, dormAddress: appData.settings.dormAddress, monthStr: monthStr,
+        roomNumber: r.roomNumber, tenantName: r.tenant.name || "ผู้เช่าห้อง "+r.roomNumber, 
+        roomPrice: rentData.rent, days: rentData.days, totalDays: rentData.totalDays,
+        prevMeter: r.lastMeter, curMeter: curMeter, units: units, elecCost: elecCost, waterCost: waterCost, commonCost: appData.settings.rateCommon, total: total,
+        bankName: appData.settings.bankName, bankAcc: appData.settings.bankAccNumber, bankOwner: appData.settings.bankAccName,
+        elecPercent: r.elecPercent||100, waterPercent: r.waterPercent||100
+      };
+
+      document.getElementById('invDormName').textContent = currentInvoiceData.dormName;
+      document.getElementById('invDormAddress').textContent = currentInvoiceData.dormAddress;
+      document.getElementById('invMonth').textContent = `ประจำเดือน: ${monthStr}`;
+      document.getElementById('invRoomNumber').textContent = currentInvoiceData.roomNumber;
+      document.getElementById('invTenantName').textContent = currentInvoiceData.tenantName;
+      
+      document.getElementById('invRoomLabel').innerHTML = rentData.days < rentData.totalDays ? `ค่าเช่า <span class="text-rose-600 text-[10px]">(${rentData.days} วัน)</span>` : "ค่าเช่าห้องพัก";
+      document.getElementById('invRoomPrice').textContent = currentInvoiceData.roomPrice.toLocaleString()+".00";
+
+      let eDet = `มิเตอร์: ${currentInvoiceData.prevMeter} ➔ ${currentInvoiceData.curMeter}`;
+      if (currentInvoiceData.elecPercent !== 100) eDet += ` (คิด ${currentInvoiceData.elecPercent}%)`;
+      document.getElementById('invMeterDetails').textContent = eDet;
+      document.getElementById('invElecUnits').textContent = units;
+      document.getElementById('invElecCost').textContent = currentInvoiceData.elecCost.toLocaleString()+".00";
+      
+      document.getElementById('invWaterLabel').innerHTML = currentInvoiceData.waterPercent !== 100 ? `ค่าน้ำประปา <span class="text-rose-600 text-[10px]">(${currentInvoiceData.waterPercent}%)</span>` : "ค่าน้ำประปา";
+      document.getElementById('invWaterCost').textContent = currentInvoiceData.waterCost.toLocaleString()+".00";
+      
+      document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString()+".00";
+      document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString()+" บาท";
+      document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
+      document.getElementById('invBankAcc').textContent = currentInvoiceData.bankAcc;
+      document.getElementById('invBankOwner').textContent = currentInvoiceData.bankOwner;
+      document.getElementById('invoiceModal').classList.remove('hidden');
+    }
+
+    function copyLineBill() {
+      const d = currentInvoiceData;
+      let rTxt = d.days < d.totalDays ? `1. ค่าเช่า (${d.days} วัน): ${d.roomPrice.toLocaleString()} บ.` : `1. ค่าเช่า: ${d.roomPrice.toLocaleString()} บ.`;
+      let eTxt = d.elecPercent !== 100 ? `2. ค่าไฟ (${d.units} น. คิด ${d.elecPercent}%): ${d.elecCost.toLocaleString()} บ.` : `2. ค่าไฟ (${d.units} หน่วย): ${d.elecCost.toLocaleString()} บ.`;
+      let wTxt = d.waterPercent !== 100 ? `3. ค่าน้ำ (คิด ${d.waterPercent}%): ${d.waterCost.toLocaleString()} บ.` : `3. ค่าน้ำ: ${d.waterCost.toLocaleString()} บ.`;
+
+      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${rTxt}\n${eTxt}\n${wTxt}\n4. ส่วนกลาง: ${d.commonCost.toLocaleString()} บ.\n━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
+      navigator.clipboard.writeText(text).then(() => alert("คัดลอกข้อความสำเร็จ นำไปวางส่งใน LINE ได้เลย!")).catch(() => alert("คัดลอกไม่สำเร็จ"));
+    }
+
     function saveSettings(e) { 
       e.preventDefault(); 
       appData.settings.dormName = document.getElementById('setDormName').value;
@@ -1164,26 +974,24 @@
       appData.settings.rateElectric = parseFloat(document.getElementById('setRateElectric').value)||5;
       appData.settings.rateWater = parseFloat(document.getElementById('setRateWater').value)||150;
       appData.settings.rateCommon = parseFloat(document.getElementById('setRateCommon').value)||300;
-      saveToStorage(); updateHeaderAndSettings(); alert('บันทึกการตั้งค่าเรียบร้อยแล้ว'); 
+      saveToCloud().then(() => { updateHeaderAndSettings(); alert('บันทึกการตั้งค่าลง Cloud เรียบร้อยแล้ว'); });
     }
     
+    // สำรองข้อมูลแบบไฟล์ JSON
     function exportDatabase() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
       const a = document.createElement('a'); a.href = dataStr; a.download = `jacky_place_backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
     }
-    
     function importDatabase(event) {
       const reader = new FileReader();
       reader.onload = e => { 
         try {
           const imported = JSON.parse(e.target.result);
-          if (imported.rooms && imported.settings) { appData = imported; saveToStorage(); initApp(); alert("นำเข้าข้อมูลสำเร็จ!"); } 
-          else alert("ไฟล์ไม่ถูกต้อง");
-        } catch(err){ alert("เกิดข้อผิดพลาดในการอ่านไฟล์"); }
+          if (imported.rooms && imported.settings) { appData = imported; saveToCloud().then(()=> { initAppFromCloud(); alert("นำเข้าข้อมูลสำเร็จ!"); }); } 
+        } catch(err){ alert("ไฟล์ไม่ถูกต้อง"); }
       };
       if(event.target.files[0]) reader.readAsText(event.target.files[0]);
     }
-    
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
   </script>
 </body>
