@@ -180,7 +180,7 @@
                   <th class="px-3 py-3">ค่าไฟ</th>
                   <th class="px-3 py-3">ค่าน้ำ</th>
                   <th class="px-3 py-3">ส่วนกลาง</th>
-                  <th class="px-3 py-3 w-32">ค่าอื่นๆ</th>
+                  <th class="px-3 py-3 w-36">ค่าอื่นๆ</th>
                   <th class="px-3 py-3 font-bold text-indigo-900">รวมสุทธิ</th>
                   <th class="px-3 py-3 text-center">สลิปโอนเงิน</th>
                   <th class="px-3 py-3 text-center">สถานะ</th>
@@ -434,7 +434,8 @@
           <tr><td class="py-2">ค่าไฟ <div class="text-[10px]" id="invMeterDetails"></div></td><td class="py-2 text-center" id="invElecUnits"></td><td class="py-2 text-right" id="invElecCost"></td></tr>
           <tr><td class="py-2" id="invWaterLabel">ค่าน้ำประปา</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invWaterCost"></td></tr>
           <tr><td class="py-2">ส่วนกลาง</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
-          <tr id="invOtherRow" class="hidden"><td class="py-2" id="invOtherLabelName">อื่นๆ</td><td class="py-2 text-center">-</td><td class="py-2 text-right" id="invOtherCostVal"></td></tr>
+          <!-- ตารางค่าอื่นๆ จะแสดงตรงนี้ -->
+          <tbody id="invOtherItemsBody"></tbody>
           <tr class="border-t-2 font-bold bg-slate-50"><td class="py-2">ยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-base text-indigo-700" id="invTotalAmount"></td></tr>
         </table>
         
@@ -802,23 +803,42 @@
       saveToCloud().then(() => renderBillingList());
     }
 
-    // 🟢 ================= ฟังก์ชัน อัปเดตค่าใช้จ่ายอื่นๆ ในบิล ================= 🟢
-    function updateOtherCost(monthStr, roomId, field, val) {
+    // 🟢 ================= ฟังก์ชัน อัปเดตค่าใช้จ่ายอื่นๆ (รองรับหลายรายการ) ================= 🟢
+    function ensureOtherItems(monthStr, roomId) {
       if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
       if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = { paid: false };
-      
-      if(field === 'label') {
-         appData.monthlyRecords[monthStr][roomId].otherLabel = val;
-      } else {
-         appData.monthlyRecords[monthStr][roomId].otherCost = parseFloat(val) || 0;
+      let rec = appData.monthlyRecords[monthStr][roomId];
+      if (!rec.otherItems) {
+        rec.otherItems = [];
+        // ย้ายข้อมูลเก่าแบบ 1 รายการมารวมใน array
+        if (rec.otherCost) {
+          rec.otherItems.push({ label: rec.otherLabel || 'อื่นๆ', cost: parseFloat(rec.otherCost) || 0 });
+          delete rec.otherCost;
+          delete rec.otherLabel;
+        }
       }
-      
-      saveToCloud().then(() => {
-         renderBillingList();
-         renderDashboard();
-      });
+      return rec;
     }
-    // =======================================================================
+
+    function addOtherItem(monthStr, roomId) {
+      let rec = ensureOtherItems(monthStr, roomId);
+      rec.otherItems.push({ label: '', cost: 0 });
+      saveToCloud().then(() => { renderBillingList(); renderDashboard(); });
+    }
+
+    function updateOtherItem(monthStr, roomId, index, field, val) {
+      let rec = ensureOtherItems(monthStr, roomId);
+      if (field === 'label') rec.otherItems[index].label = val;
+      if (field === 'cost') rec.otherItems[index].cost = parseFloat(val) || 0;
+      saveToCloud().then(() => { renderBillingList(); renderDashboard(); });
+    }
+
+    function removeOtherItem(monthStr, roomId, index) {
+      let rec = ensureOtherItems(monthStr, roomId);
+      rec.otherItems.splice(index, 1);
+      saveToCloud().then(() => { renderBillingList(); renderDashboard(); });
+    }
+    // =========================================================================================
 
     function createDefaultData() {
       return {
@@ -939,8 +959,15 @@
           if (rentData.days > 0) {
             const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100) / 100);
             const waterCost = appData.settings.rateWater * ((r.waterPercent||100) / 100);
-            const otherCost = parseFloat(rec.otherCost) || 0;
-            totalBilled += rentData.rent + elecCost + waterCost + appData.settings.rateCommon + otherCost;
+            
+            let otherTotal = 0;
+            if (rec.otherItems) {
+               otherTotal = rec.otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
+            } else if (rec.otherCost) {
+               otherTotal = parseFloat(rec.otherCost) || 0;
+            }
+
+            totalBilled += rentData.rent + elecCost + waterCost + appData.settings.rateCommon + otherTotal;
             if (rec.paid) paidCount++;
           }
         }
@@ -1109,11 +1136,14 @@
         const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100)/100);
         const waterCost = appData.settings.rateWater * ((r.waterPercent||100)/100);
         
-        // ข้อมูลค่าอื่นๆ 
-        const otherCost = parseFloat(record.otherCost) || 0;
-        const otherLabel = record.otherLabel || '';
-
-        const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon + otherCost;
+        // 🟢 ส่วนจัดการค่าใช้จ่ายอื่นๆ (ดึงมาจาก array)
+        let otherItems = record.otherItems || [];
+        if (record.otherCost && otherItems.length === 0) {
+           otherItems.push({ label: record.otherLabel || '', cost: parseFloat(record.otherCost) || 0 });
+        }
+        let otherTotal = otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
+        
+        const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon + otherTotal;
         const isPaid = record.paid || false;
 
         let rDisp = rentData.rent.toLocaleString(); if(rentData.days < rentData.totalDays) rDisp += ` <br><span class="text-[10px] text-rose-600">(${rentData.days} วัน)</span>`;
@@ -1138,14 +1168,25 @@
           `;
         }
 
+        // 🟢 UI สำหรับแก้ไขค่าอื่นๆ (เพิ่มได้หลายรายการ)
+        let otherUI = `
+          <div class="flex flex-col gap-1 w-[130px]">
+            ${otherItems.map((item, idx) => `
+              <div class="flex gap-1 items-center">
+                <input type="text" placeholder="ชื่อ" value="${item.label}" onchange="updateOtherItem('${monthStr}', '${r.id}', ${idx}, 'label', this.value)" class="w-14 px-1 py-0.5 border rounded text-[10px] bg-white">
+                <input type="number" placeholder="฿" value="${item.cost || ''}" onchange="updateOtherItem('${monthStr}', '${r.id}', ${idx}, 'cost', this.value)" class="w-12 px-1 py-0.5 border rounded text-[10px] text-right bg-white text-indigo-700 font-bold">
+                <button onclick="removeOtherItem('${monthStr}', '${r.id}', ${idx})" class="text-rose-400 hover:text-rose-600 px-0.5" title="ลบรายการ"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+              </div>
+            `).join('')}
+            <button onclick="addOtherItem('${monthStr}', '${r.id}')" class="mt-0.5 w-full border border-dashed border-indigo-300 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded text-[9px] py-0.5 transition"><i class="fa-solid fa-plus"></i> เพิ่มรายการ</button>
+          </div>
+        `;
+
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
             <td class="px-3 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-3 py-2">${r.tenant.name || '-'}</td>
             <td class="px-3 py-2">${rDisp}</td><td class="px-3 py-2">${eDisp}</td><td class="px-3 py-2">${wDisp}</td><td class="px-3 py-2">${appData.settings.rateCommon}</td>
-            <td class="px-3 py-2">
-               <input type="text" placeholder="ระบุรายการ..." value="${otherLabel}" onchange="updateOtherCost('${monthStr}', '${r.id}', 'label', this.value)" class="w-full mb-1 px-1.5 py-0.5 border rounded text-[10px] bg-white">
-               <input type="number" placeholder="จำนวนเงิน" value="${otherCost || ''}" onchange="updateOtherCost('${monthStr}', '${r.id}', 'cost', this.value)" class="w-full px-1.5 py-0.5 border rounded text-[11px] text-right bg-white text-indigo-700 font-bold">
-            </td>
+            <td class="px-3 py-2 align-middle">${otherUI}</td>
             <td class="px-3 py-2 font-bold text-indigo-700 text-base">${total.toLocaleString()}</td>
             <td class="px-3 py-2 align-middle w-24">${slipHtml}</td>
             <td class="px-3 py-2 align-middle text-center"><button onclick="togglePaidStatus('${monthStr}', '${r.id}')" class="px-2 py-1 text-xs rounded-full ${isPaid?'bg-emerald-100 text-emerald-800 shadow-sm':'bg-amber-100 text-amber-800 border border-amber-300'}">${isPaid?'<i class="fa-solid fa-check"></i> ชำระแล้ว':'รอชำระ'}</button></td>
@@ -1174,8 +1215,15 @@
             const rec = mData[r.id] || {};
             const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
             const units = Math.max(0, curMeter - r.lastMeter);
-            const otherCost = parseFloat(rec.otherCost) || 0;
-            const bill = rentData.rent + ((units * appData.settings.rateElectric)*((r.elecPercent||100)/100)) + (appData.settings.rateWater*((r.waterPercent||100)/100)) + appData.settings.rateCommon + otherCost;
+            
+            let otherTotal = 0;
+            if (rec.otherItems) {
+               otherTotal = rec.otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
+            } else if (rec.otherCost) {
+               otherTotal = parseFloat(rec.otherCost) || 0;
+            }
+
+            const bill = rentData.rent + ((units * appData.settings.rateElectric)*((r.elecPercent||100)/100)) + (appData.settings.rateWater*((r.waterPercent||100)/100)) + appData.settings.rateCommon + otherTotal;
             totalExpected += bill; if (rec.paid) totalCollected += bill;
           }
         }
@@ -1224,9 +1272,22 @@
       const units = Math.max(0, curMeter - r.lastMeter);
       const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100)/100);
       const waterCost = appData.settings.rateWater * ((r.waterPercent||100)/100);
-      const otherCost = parseFloat(record.otherCost) || 0;
-      const otherLabel = record.otherLabel || 'อื่นๆ';
-      const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon + otherCost;
+      
+      let otherItems = record.otherItems || [];
+      if (record.otherCost && otherItems.length === 0) {
+         otherItems.push({ label: record.otherLabel || '', cost: parseFloat(record.otherCost) || 0 });
+      }
+      
+      let otherTotal = 0;
+      let otherHtml = '';
+      otherItems.forEach(item => {
+         if (item.cost > 0) {
+            otherTotal += item.cost;
+            otherHtml += `<tr><td class="py-2">${item.label || 'อื่นๆ'}</td><td class="py-2 text-center">-</td><td class="py-2 text-right">${item.cost.toLocaleString() + ".00"}</td></tr>`;
+         }
+      });
+
+      const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon + otherTotal;
 
       currentInvoiceData = {
         dormName: appData.settings.dormName, dormAddress: appData.settings.dormAddress, monthStr: monthStr,
@@ -1236,7 +1297,7 @@
         bankName: appData.settings.bankName, bankAcc: appData.settings.bankAccNumber, bankOwner: appData.settings.bankAccName,
         elecPercent: r.elecPercent||100, waterPercent: r.waterPercent||100,
         qrCodeUrl: appData.settings.bankQrCodeUrl || "",
-        otherCost: otherCost, otherLabel: otherLabel
+        otherItems: otherItems
       };
 
       document.getElementById('invDormName').textContent = currentInvoiceData.dormName;
@@ -1259,13 +1320,8 @@
       
       document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString()+".00";
       
-      if (otherCost > 0) {
-         document.getElementById('invOtherRow').classList.remove('hidden');
-         document.getElementById('invOtherLabelName').textContent = otherLabel;
-         document.getElementById('invOtherCostVal').textContent = otherCost.toLocaleString()+".00";
-      } else {
-         document.getElementById('invOtherRow').classList.add('hidden');
-      }
+      // 🟢 แทรกข้อมูลค่าใช้จ่ายอื่นๆ ลงในตารางใบแจ้งหนี้
+      document.getElementById('invOtherItemsBody').innerHTML = otherHtml;
 
       document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString()+" บาท";
       document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
@@ -1306,10 +1362,21 @@
         const elecCost = (units * appData.settings.rateElectric) * (elecPercent/100);
         const waterCost = appData.settings.rateWater * (waterPercent/100);
         const commonCost = appData.settings.rateCommon;
-        const otherCost = parseFloat(record.otherCost) || 0;
-        const otherLabel = record.otherLabel || 'อื่นๆ';
         
-        const total = rentData.rent + elecCost + waterCost + commonCost + otherCost;
+        let otherItems = record.otherItems || [];
+        if (record.otherCost && otherItems.length === 0) {
+           otherItems.push({ label: record.otherLabel || '', cost: parseFloat(record.otherCost) || 0 });
+        }
+        let otherTotal = 0;
+        let oRows = '';
+        otherItems.forEach(item => {
+           if (item.cost > 0) {
+              otherTotal += item.cost;
+              oRows += `<tr><td class="py-0.5">${item.label || 'อื่นๆ'}</td><td class="py-0.5 text-right">${item.cost.toLocaleString()}</td></tr>`;
+           }
+        });
+
+        const total = rentData.rent + elecCost + waterCost + commonCost + otherTotal;
 
         const tName = r.tenant.name || "ผู้เช่าห้อง "+r.roomNumber;
         let rTxt = rentData.days < rentData.totalDays ? `ค่าเช่า (${rentData.days} วัน)` : `ค่าเช่าห้องพัก`;
@@ -1318,8 +1385,6 @@
 
         const qrUrl = appData.settings.bankQrCodeUrl || "";
         let qrHtml = qrUrl ? `<img src="${qrUrl}" class="w-12 h-12 object-contain rounded bg-white p-0.5 border">` : '';
-        
-        let oRow = otherCost > 0 ? `<tr><td class="py-0.5">${otherLabel}</td><td class="py-0.5 text-right">${otherCost.toLocaleString()}</td></tr>` : '';
 
         html += `
           <div class="border border-dashed border-slate-400 p-3 flex flex-col justify-between" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid;">
@@ -1336,7 +1401,7 @@
                <tr><td class="py-0.5">${eTxt}<br><span class="text-[8px] text-slate-400">มิเตอร์: ${r.lastMeter} ➔ ${curMeter}</span></td><td class="py-0.5 text-right align-top">${elecCost.toLocaleString()}</td></tr>
                <tr><td class="py-0.5">${wTxt}</td><td class="py-0.5 text-right">${waterCost.toLocaleString()}</td></tr>
                <tr><td class="py-0.5">ส่วนกลาง/ที่จอดรถ</td><td class="py-0.5 text-right">${commonCost.toLocaleString()}</td></tr>
-               ${oRow}
+               ${oRows}
             </table>
             <div class="text-right text-[12px] font-bold text-indigo-700 border-t border-slate-300 pt-1 mt-auto">
                รวมสุทธิ: ${total.toLocaleString()} บาท
@@ -1379,7 +1444,17 @@
       let eTxt = d.elecPercent !== 100 ? `2. ค่าไฟ (${d.units} น. คิด ${d.elecPercent}%): ${d.elecCost.toLocaleString()} บ.` : `2. ค่าไฟ (${d.units} หน่วย): ${d.elecCost.toLocaleString()} บ.`;
       let wTxt = d.waterPercent !== 100 ? `3. ค่าน้ำ (คิด ${d.waterPercent}%): ${d.waterCost.toLocaleString()} บ.` : `3. ค่าน้ำ: ${d.waterCost.toLocaleString()} บ.`;
 
-      let oTxt = d.otherCost > 0 ? `\n5. ${d.otherLabel}: ${d.otherCost.toLocaleString()} บ.` : '';
+      let oTxt = '';
+      let lineIdx = 5;
+      if (d.otherItems && d.otherItems.length > 0) {
+         d.otherItems.forEach(item => {
+            if (item.cost > 0) {
+               oTxt += `\n${lineIdx}. ${item.label || 'อื่นๆ'}: ${item.cost.toLocaleString()} บ.`;
+               lineIdx++;
+            }
+         });
+      }
+
       let qrText = d.qrCodeUrl ? `\n📱 สแกน QR Code (คลิกรูปลิงก์ด้านล่าง):\n${d.qrCodeUrl}` : '';
 
       const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${rTxt}\n${eTxt}\n${wTxt}\n4. ส่วนกลาง: ${d.commonCost.toLocaleString()} บ.${oTxt}\n━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}${qrText}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
