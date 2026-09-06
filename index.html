@@ -349,7 +349,6 @@
         <form id="tenantForm" onsubmit="saveTenantData(event)">
           <input type="hidden" id="editRoomId">
           
-          <!-- แถวสำหรับกรอกราคา, สถานะ และ มิเตอร์เริ่มต้น -->
           <div class="grid grid-cols-3 gap-4 mb-4">
             <div><label class="text-xs font-semibold mb-1 block">ราคาห้องเต็มเดือน</label><input type="number" id="editRoomPrice" class="w-full border p-2 rounded text-sm" required></div>
             <div><label class="text-xs font-semibold mb-1 block">สถานะ</label><select id="editRoomStatus" class="w-full border p-2 rounded text-sm"><option value="มีผู้เช่า">มีผู้เช่า</option><option value="ห้องว่าง">ห้องว่าง</option></select></div>
@@ -383,7 +382,6 @@
             <label class="text-xs mb-1 block">ติดต่อฉุกเฉิน</label><input type="text" id="editEmergencyContact" class="w-full border p-2 rounded text-sm">
           </div>
 
-          <!-- แนบเอกสาร -->
           <div class="border-t pt-5">
             <h4 class="font-bold text-sm text-indigo-700 mb-4"><i class="fa-solid fa-cloud"></i> เอกสารแนบ (ฝากรูปผ่าน ImgBB)</h4>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1160,7 +1158,6 @@
       });
     }
 
-    // 🟢 ================= เพิ่มช่องโหลดมิเตอร์เริ่มต้นในหน้าแก้ไขห้อง ================= 🟢
     function openEditRoomModal(id) { 
       const r = appData.rooms.find(x => x.id === id);
       document.getElementById('modalRoomTitle').textContent = `ห้อง ${r.roomNumber}`;
@@ -1219,7 +1216,9 @@
       const curMonthData = appData.monthlyRecords[monthStr];
 
       appData.rooms.forEach(r => {
-        if(r.status !== 'มีผู้เช่า' || calculateRoomRent(r, monthStr).days === 0) return;
+        // แก้ไขตรงนี้: ให้โชว์ทุกห้องที่มีสถานะ "มีผู้เช่า" ไม่ว่าจะเข้าวันไหนก็ตาม
+        if(r.status !== 'มีผู้เช่า') return;
+        
         const rec = curMonthData[r.id] || { curMeter: r.lastMeter };
         const prevMeter = r.lastMeter;
         const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
