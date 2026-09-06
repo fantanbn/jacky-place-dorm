@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-  <!-- Firebase SDKs (ตัด Storage ออก ใช้แค่ Auth และ Firestore) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
@@ -30,7 +30,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
 
-  <!-- ================= หน้าจอ LOGIN (ระบบ Email/Password ของ Firebase) ================= -->
+  <!-- ================= หน้าจอ LOGIN ================= -->
   <div id="loginScreen" class="fixed inset-0 bg-indigo-900 z-50 flex items-center justify-center p-4">
     <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
       <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
@@ -51,7 +51,7 @@
     </div>
   </div>
 
-  <!-- ================= ส่วนของหน้าโหลดข้อมูล ================= -->
+  <!-- ================= หน้าโหลดข้อมูล ================= -->
   <div id="loadingScreen" class="fixed inset-0 bg-white z-40 hidden flex-col items-center justify-center p-4">
     <i class="fa-solid fa-circle-notch fa-spin text-4xl text-indigo-600 mb-4"></i>
     <p class="font-bold text-slate-700" id="loadingText">กำลังซิงค์ข้อมูลกับคลาวด์...</p>
@@ -59,7 +59,6 @@
 
   <!-- ================= ส่วนของแอปพลิเคชัน ================= -->
   <div id="mainApp" style="display: none;">
-    <!-- แถบเมนูด้านบน -->
     <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-30 no-print">
       <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
         <div class="flex items-center space-x-3">
@@ -71,7 +70,7 @@
             </p>
           </div>
         </div>
-<div class="flex items-center space-x-2 mt-2 sm:mt-0">
+        <div class="flex items-center space-x-2 mt-2 sm:mt-0">
           <button onclick="handleFirebaseLogout()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 rounded text-xs font-medium transition flex items-center gap-1.5">
             <i class="fa-solid fa-power-off"></i> ออกจากระบบ
           </button>
@@ -86,7 +85,6 @@
       </div>
     </header>
 
-    <!-- แท็บเมนูหลัก -->
     <div class="max-w-7xl mx-auto px-4 mt-6 no-print">
       <div class="flex border-b border-slate-300 space-x-2 sm:space-x-4 overflow-x-auto">
         <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-indigo-700 text-indigo-700 flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-chart-pie"></i> แดชบอร์ด</button>
@@ -98,9 +96,7 @@
       </div>
     </div>
 
-    <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-6">
-      
       <!-- 1. Dashboard -->
       <section id="tab-dashboard" class="tab-content">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -154,7 +150,7 @@
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
-                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">เดือนก่อน</th><th class="px-4 py-3">เดือนนี้ (หน่วย)</th><th class="px-4 py-3">รูปภาพมิเตอร์ (เก็บบน Cloud)</th><th class="px-4 py-3">หน่วยที่ใช้</th><th class="px-4 py-3">รวมค่าไฟ</th></tr>
+                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">เดือนก่อน</th><th class="px-4 py-3">เดือนนี้ (หน่วย)</th><th class="px-4 py-3">รูปภาพมิเตอร์ (Cloud)</th><th class="px-4 py-3">หน่วยที่ใช้</th><th class="px-4 py-3">รวมค่าไฟ</th></tr>
               </thead>
               <tbody id="meterTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
@@ -213,7 +209,7 @@
         </div>
       </section>
 
-      <!-- 6. Settings -->
+      <!-- 6. Settings (เพิ่ม QR Code) -->
       <section id="tab-settings" class="tab-content hidden">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto">
           <h2 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b">ตั้งค่าข้อมูลหอพัก & บริการ</h2>
@@ -230,7 +226,34 @@
               <div><label class="block text-sm mb-1">ค่าน้ำ (เหมา)</label><input type="number" id="setRateWater" class="w-full p-2 border rounded" required></div>
               <div><label class="block text-sm mb-1">ส่วนกลาง (บ.)</label><input type="number" id="setRateCommon" class="w-full p-2 border rounded" required></div>
             </div>
-            <div class="flex justify-end"><button type="submit" class="px-5 py-2 bg-indigo-700 text-white rounded shadow">บันทึกขึ้น Cloud</button></div>
+
+            <!-- ส่วนอัปโหลด QR Code -->
+            <div class="border-t pt-4 mt-4">
+              <label class="block text-sm font-bold text-indigo-900 mb-2"><i class="fa-solid fa-qrcode mr-1"></i> QR Code บัญชีรับเงิน (แสดงในบิล)</label>
+              <div class="flex items-start gap-4">
+                <!-- กล่องพรีวิว QR Code -->
+                <div id="preview-qrcode-box" class="hidden relative w-32 h-32 border rounded-lg bg-slate-50 flex items-center justify-center p-1 shadow-sm">
+                  <img id="setBankQrCode" src="" class="max-w-full max-h-full rounded object-contain">
+                  <button type="button" onclick="deleteCloudQrCode()" class="absolute -top-2 -right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center shadow"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <!-- ปุ่มอัปโหลด QR Code -->
+                <div id="upload-qrcode-box" class="w-32 h-32 border-2 border-dashed border-indigo-300 rounded-lg bg-indigo-50 flex flex-col items-center justify-center text-indigo-600 hover:bg-indigo-100 cursor-pointer transition">
+                  <label class="cursor-pointer w-full h-full flex flex-col items-center justify-center">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1"></i>
+                    <span class="text-xs font-semibold">อัปโหลด QR</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="uploadCloudQrCode(event)">
+                  </label>
+                </div>
+                <!-- สถานะโหลด QR Code -->
+                <div id="qrcode-loading" class="hidden w-32 h-32 border rounded-lg bg-slate-50 flex-col items-center justify-center text-indigo-500">
+                   <i class="fa-solid fa-spinner fa-spin text-2xl mb-1"></i>
+                   <span class="text-xs">กำลังอัปโหลด...</span>
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-500 mt-2">* อัปโหลดรูป QR Code ของบัญชีธนาคารเพื่อนำไปแสดงบนใบแจ้งหนี้</p>
+            </div>
+
+            <div class="flex justify-end pt-4"><button type="submit" class="px-5 py-2 bg-indigo-700 text-white rounded shadow">บันทึกตั้งค่าขึ้น Cloud</button></div>
           </form>
         </div>
       </section>
@@ -240,7 +263,6 @@
   <!-- MODAL: แก้ไขข้อมูลห้องและอัปโหลดเอกสาร -->
   <div id="tenantModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-start justify-center p-4 overflow-y-auto pt-10 pb-10">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl relative">
-      <!-- Overlay โหลดรูป -->
       <div id="modalLoading" class="absolute inset-0 bg-white/80 z-20 hidden flex-col items-center justify-center rounded-xl">
         <i class="fa-solid fa-cloud-arrow-up fa-bounce text-3xl text-indigo-600 mb-2"></i>
         <p class="font-bold text-sm text-indigo-900">กำลังอัปโหลดรูปภาพ...</p>
@@ -288,9 +310,8 @@
 
           <!-- แนบเอกสาร -->
           <div class="border-t pt-5">
-            <h4 class="font-bold text-sm text-indigo-700 mb-4"><i class="fa-solid fa-cloud"></i> เอกสารแนบ (ฝากรูปอัตโนมัติผ่าน ImgBB)</h4>
+            <h4 class="font-bold text-sm text-indigo-700 mb-4"><i class="fa-solid fa-cloud"></i> เอกสารแนบ (ฝากรูปผ่าน ImgBB)</h4>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <!-- สัญญาเช่า -->
               <div class="border rounded-lg p-3 bg-slate-50 text-center">
                 <p class="text-xs font-bold mb-2">สัญญาเช่า</p>
                 <div id="preview-contract-box" class="hidden mb-2 relative">
@@ -305,7 +326,6 @@
                 </div>
               </div>
 
-              <!-- บัตรประชาชน -->
               <div class="border rounded-lg p-3 bg-slate-50 text-center">
                 <p class="text-xs font-bold mb-2">บัตรประชาชน</p>
                 <div id="preview-idcard-box" class="hidden mb-2 relative">
@@ -320,7 +340,6 @@
                 </div>
               </div>
 
-              <!-- ทะเบียนบ้าน -->
               <div class="border rounded-lg p-3 bg-slate-50 text-center">
                 <p class="text-xs font-bold mb-2">ทะเบียนบ้าน</p>
                 <div id="preview-house-box" class="hidden mb-2 relative">
@@ -346,7 +365,7 @@
     </div>
   </div>
 
-  <!-- MODAL: พรีวิวใบแจ้งหนี้ -->
+  <!-- MODAL: พรีวิวใบแจ้งหนี้ (เพิ่ม QR Code) -->
   <div id="invoiceModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[95vh]">
       <div class="p-4 bg-slate-800 text-white flex justify-between items-center no-print">
@@ -370,14 +389,20 @@
           <tr><td class="py-2">ส่วนกลาง</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
           <tr class="border-t-2 font-bold bg-slate-50"><td class="py-2">ยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-base text-indigo-700" id="invTotalAmount"></td></tr>
         </table>
-        <!-- 🟢 โค้ดข้อมูลธนาคารที่ต้องเพิ่มเข้าไปใหม่ 🟢 -->
-        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-2 text-xs">
-          <p class="font-bold text-indigo-900 mb-1">ช่องทางการชำระเงิน:</p>
-          <p id="invBankName"></p>
-          <p class="font-bold text-sm">เลขที่บัญชี: <span class="text-indigo-700" id="invBankAcc"></span></p>
-          <p>ชื่อบัญชี: <span id="invBankOwner"></span></p>
+        
+        <!-- ช่องทางการชำระเงิน + QR Code -->
+        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-2 text-xs flex justify-between items-center">
+          <div>
+            <p class="font-bold text-indigo-900 mb-1">ช่องทางการชำระเงิน:</p>
+            <p id="invBankName"></p>
+            <p class="font-bold text-sm">เลขที่บัญชี: <span class="text-indigo-700" id="invBankAcc"></span></p>
+            <p>ชื่อบัญชี: <span id="invBankOwner"></span></p>
+          </div>
+          <div id="invQrCodeBox" class="hidden">
+            <img id="invQrCodeImg" src="" class="w-20 h-20 object-contain rounded bg-white border border-indigo-200 p-1">
+          </div>
         </div>
-        <!-- ================================== -->
+
       </div>
       <div class="p-4 bg-slate-100 flex justify-between no-print">
         <button onclick="copyLineBill()" class="px-3 py-2 bg-emerald-600 text-white rounded text-xs">คัดลอกส่ง LINE</button>
@@ -389,8 +414,8 @@
 
   <!-- ======================= JAVASCRIPT ======================= -->
   <script>
-    // 🔴 1. นำ Firebase Config จากเว็บไซต์ Firebase ของคุณมาวางแทนที่ตรงนี้
-   const firebaseConfig = {
+    // ข้อมูล API ของคุณ (ใส่ให้แล้ว)
+    const firebaseConfig = {
       apiKey: "AIzaSyDsoKwoSoVrwONtB_pw3jl_NJeS8dPq9Qw",
       authDomain: "jacky-place.firebaseapp.com",
       projectId: "jacky-place",
@@ -398,9 +423,7 @@
       messagingSenderId: "622847780010",
       appId: "1:622847780010:web:69a2731ef3b10954285cd3"
     };
-
-    // 🔴 2. นำ ImgBB API Key ของคุณมาวางตรงนี้
-    const IMGBB_API_KEY = "0fc8fbab2adfab04d6333ba40dbbbff9";
+    const IMGBB_API_KEY = "0fc8fbab2adfab04d6333ba40dbbbff9"; 
 
     // ==============================================================
 
@@ -450,6 +473,7 @@
         }
         
         if (!appData.monthlyExpenses) appData.monthlyExpenses = {};
+        if (!appData.settings.bankQrCodeUrl) appData.settings.bankQrCodeUrl = "";
         appData.rooms.forEach(r => {
           if (!r.tenant.docs) r.tenant.docs = { contract: "", idcard: "", house: "" };
         });
@@ -479,7 +503,7 @@
       catch (err) { alert("ไม่สามารถบันทึกข้อมูลขึ้น Cloud ได้"); }
     }
 
-    // ================= ระบบอัปโหลดรูปภาพ (IMGBB API ฟรี ไม่ใช้บัตรเครดิต) =================
+    // ================= ระบบอัปโหลดรูปภาพ =================
     function compressImage(file, callback) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -495,9 +519,8 @@
       }
     }
 
-    // โยนภาพไปที่ ImgBB
     function uploadToImgBB(base64Data, onSuccess, onError) {
-      const base64String = base64Data.split(',')[1]; // เอาแค่ข้อมูล
+      const base64String = base64Data.split(',')[1]; 
       const formData = new FormData();
       formData.append("image", base64String);
 
@@ -512,7 +535,43 @@
       .catch(err => onError(err));
     }
 
-    // อัปโหลดเอกสารเช่า (แก้ไขห้อง)
+    // อัปโหลด QR Code การตั้งค่า
+    function uploadCloudQrCode(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { alert('อัปโหลดเฉพาะไฟล์รูปภาพ'); return; }
+      
+      document.getElementById('upload-qrcode-box').classList.add('hidden');
+      document.getElementById('qrcode-loading').classList.remove('hidden');
+      document.getElementById('qrcode-loading').classList.add('flex');
+
+      compressImage(file, base64 => {
+        uploadToImgBB(base64, 
+          (url) => {
+            appData.settings.bankQrCodeUrl = url; 
+            saveToCloud().then(() => {
+              updateHeaderAndSettings();
+              document.getElementById('qrcode-loading').classList.add('hidden');
+              document.getElementById('qrcode-loading').classList.remove('flex');
+            });
+          }, 
+          (err) => {
+            alert("อัปโหลด QR Code ไม่สำเร็จ กรุณาลองใหม่");
+            updateHeaderAndSettings();
+            document.getElementById('qrcode-loading').classList.add('hidden');
+            document.getElementById('qrcode-loading').classList.remove('flex');
+          }
+        );
+      });
+    }
+
+    function deleteCloudQrCode() {
+      if(!confirm('ยืนยันลบรูป QR Code?')) return;
+      appData.settings.bankQrCodeUrl = "";
+      saveToCloud().then(() => updateHeaderAndSettings());
+    }
+
+    // อัปโหลดเอกสารห้อง
     function uploadCloudDoc(event, docType) {
       const file = event.target.files[0];
       if (!file) return;
@@ -530,7 +589,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลดไม่สำเร็จ กรุณาเช็ค ImgBB API Key");
+            alert("อัปโหลดไม่สำเร็จ");
             document.getElementById('modalLoading').style.display = 'none';
           }
         );
@@ -543,7 +602,6 @@
       const roomId = document.getElementById('editRoomId').value;
       const r = appData.rooms.find(x => x.id === roomId);
       r.tenant.docs[docType] = ""; 
-      
       saveToCloud().then(() => {
         renderDocPreview("", docType);
         document.getElementById('modalLoading').style.display = 'none';
@@ -567,7 +625,7 @@
       }
     }
 
-    // อัปโหลดรูปมิเตอร์เดือนนั้นๆ
+    // อัปโหลดมิเตอร์
     function uploadCloudMeter(event, roomId) {
       const file = event.target.files[0];
       if (!file) return;
@@ -583,9 +641,7 @@
             appData.monthlyRecords[monthStr][roomId].meterUrl = url;
             saveToCloud().then(() => renderMetersTable());
           },
-          (err) => {
-             statusSpan.innerHTML = `<span class="text-rose-500">อัปโหลดพลาด</span>`;
-          }
+          (err) => { statusSpan.innerHTML = `<span class="text-rose-500">อัปโหลดพลาด</span>`; }
         );
       });
     }
@@ -597,16 +653,14 @@
       saveToCloud().then(() => renderMetersTable());
     }
 
-
     // ================= โลจิกทั่วไปของระบบ =================
-    
     function createDefaultData() {
       return {
-        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300 },
+        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "" },
         rooms: Array.from({length: 16}, (_, i) => {
           let n = i < 8 ? 101+i : 201+(i-8); 
           let p = i < 8 ? 3500 : 3800;
-          return { id: String(n), roomNumber: String(n), price: p, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 1000 };
+          return { id: String(n), roomNumber: String(n), price: p, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 1000 };
         }),
         monthlyRecords: {}, monthlyExpenses: {}
       };
@@ -647,6 +701,17 @@
       document.getElementById('setRateElectric').value = appData.settings.rateElectric;
       document.getElementById('setRateWater').value = appData.settings.rateWater;
       document.getElementById('setRateCommon').value = appData.settings.rateCommon;
+
+      const qrUrl = appData.settings.bankQrCodeUrl || "";
+      if (qrUrl) {
+        document.getElementById('setBankQrCode').src = qrUrl;
+        document.getElementById('preview-qrcode-box').classList.remove('hidden');
+        document.getElementById('upload-qrcode-box').classList.add('hidden');
+      } else {
+        document.getElementById('setBankQrCode').src = "";
+        document.getElementById('preview-qrcode-box').classList.add('hidden');
+        document.getElementById('upload-qrcode-box').classList.remove('hidden');
+      }
     }
 
     function switchTab(tabId) {
@@ -784,7 +849,6 @@
       });
     }
 
-    // ====== Meters ======
     function renderMetersTable() { 
       const monthStr = document.getElementById('meterBillingMonth').value;
       const tbody = document.getElementById('meterTableBody'); tbody.innerHTML = '';
@@ -834,11 +898,9 @@
       if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
       if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = {};
       appData.monthlyRecords[monthStr][roomId].curMeter = parseFloat(val) || 0;
-      
       saveToCloud().then(() => renderMetersTable());
     }
 
-    // ====== Billing & Summary ======
     function renderBillingList() { 
       const monthStr = document.getElementById('billingMonthSelector').value;
       const tbody = document.getElementById('billingTableBody'); tbody.innerHTML = '';
@@ -867,7 +929,7 @@
             <td class="px-4 py-2">${rDisp}</td><td class="px-4 py-2">${eDisp}</td><td class="px-4 py-2">${wDisp}</td><td class="px-4 py-2">${appData.settings.rateCommon}</td>
             <td class="px-4 py-2 font-bold text-indigo-700">${total.toLocaleString()}</td>
             <td class="px-4 py-2"><button onclick="togglePaidStatus('${monthStr}', '${r.id}')" class="px-2 py-1 text-xs rounded-full ${isPaid?'bg-emerald-100 text-emerald-800':'bg-amber-100'}">${isPaid?'ชำระแล้ว':'รอชำระ'}</button></td>
-            <td class="px-4 py-2"><button onclick="openInvoiceModal('${r.id}')" class="px-3 py-1 bg-indigo-700 text-white rounded text-xs"><i class="fa-solid fa-eye"></i> ดูบิล</button></td>
+            <td class="px-4 py-2 text-center"><button onclick="openInvoiceModal('${r.id}')" class="px-3 py-1 bg-indigo-700 text-white rounded text-xs shadow-sm"><i class="fa-solid fa-eye"></i> ดูบิล</button></td>
           </tr>
         `;
       });
@@ -969,6 +1031,20 @@
       document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
       document.getElementById('invBankAcc').textContent = currentInvoiceData.bankAcc;
       document.getElementById('invBankOwner').textContent = currentInvoiceData.bankOwner;
+
+      // จัดการแสดง QR Code ในบิล
+      const qrUrl = appData.settings.bankQrCodeUrl || "";
+      const qrBox = document.getElementById('invQrCodeBox');
+      const qrImg = document.getElementById('invQrCodeImg');
+      
+      if (qrUrl) {
+         qrImg.src = qrUrl;
+         qrBox.classList.remove('hidden');
+      } else {
+         qrImg.src = "";
+         qrBox.classList.add('hidden');
+      }
+
       document.getElementById('invoiceModal').classList.remove('hidden');
     }
 
@@ -995,7 +1071,7 @@
       saveToCloud().then(() => { updateHeaderAndSettings(); alert('บันทึกการตั้งค่าลง Cloud เรียบร้อยแล้ว'); });
     }
     
-    // สำรองข้อมูลแบบไฟล์ JSON
+    // สำรองและนำเข้าข้อมูล JSON
     function exportDatabase() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
       const a = document.createElement('a'); a.href = dataStr; a.download = `jacky_place_backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
