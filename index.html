@@ -203,7 +203,7 @@
         </div>
       </section>
 
-      <!-- 5. Summary -->
+      <!-- 5. Summary (Dashboard) -->
       <section id="tab-summary" class="tab-content hidden">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-5xl mx-auto mb-6">
           <div class="flex justify-between items-center mb-6 pb-4 border-b">
@@ -348,9 +348,12 @@
       <div class="p-6">
         <form id="tenantForm" onsubmit="saveTenantData(event)">
           <input type="hidden" id="editRoomId">
-          <div class="grid grid-cols-2 gap-4 mb-4">
+          
+          <!-- แถวสำหรับกรอกราคา, สถานะ และ มิเตอร์เริ่มต้น -->
+          <div class="grid grid-cols-3 gap-4 mb-4">
             <div><label class="text-xs font-semibold mb-1 block">ราคาห้องเต็มเดือน</label><input type="number" id="editRoomPrice" class="w-full border p-2 rounded text-sm" required></div>
             <div><label class="text-xs font-semibold mb-1 block">สถานะ</label><select id="editRoomStatus" class="w-full border p-2 rounded text-sm"><option value="มีผู้เช่า">มีผู้เช่า</option><option value="ห้องว่าง">ห้องว่าง</option></select></div>
+            <div><label class="text-xs font-semibold mb-1 block text-amber-600">มิเตอร์ไฟเริ่มต้น</label><input type="number" id="editLastMeter" class="w-full border border-amber-300 p-2 rounded text-sm bg-amber-50" placeholder="0" required></div>
           </div>
 
           <div class="grid grid-cols-2 gap-4 mb-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
@@ -380,6 +383,7 @@
             <label class="text-xs mb-1 block">ติดต่อฉุกเฉิน</label><input type="text" id="editEmergencyContact" class="w-full border p-2 rounded text-sm">
           </div>
 
+          <!-- แนบเอกสาร -->
           <div class="border-t pt-5">
             <h4 class="font-bold text-sm text-indigo-700 mb-4"><i class="fa-solid fa-cloud"></i> เอกสารแนบ (ฝากรูปผ่าน ImgBB)</h4>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -634,7 +638,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลดโลโก้ไม่สำเร็จ กรุณาลองใหม่");
+            alert("อัปโหลดโลโก้ไม่สำเร็จ");
             updateHeaderAndSettings();
             document.getElementById('logo-loading').classList.add('hidden');
             document.getElementById('logo-loading').classList.remove('flex');
@@ -669,7 +673,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลด QR Code ไม่สำเร็จ กรุณาลองใหม่");
+            alert("อัปโหลด QR Code ไม่สำเร็จ");
             updateHeaderAndSettings();
             document.getElementById('qrcode-loading').classList.add('hidden');
             document.getElementById('qrcode-loading').classList.remove('flex');
@@ -826,7 +830,6 @@
       saveToCloud().then(() => renderBillingList());
     }
 
-    // 🟢 ================= ฟังก์ชัน อัปเดตค่าใช้จ่ายอื่นๆ (ห้อง) ================= 🟢
     function ensureOtherItems(monthStr, roomId) {
       if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
       if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = { paid: false };
@@ -861,7 +864,6 @@
       saveToCloud().then(() => { renderBillingList(); renderDashboard(); });
     }
 
-    // 🟢 ================= ฟังก์ชัน อัปเดตรายจ่ายของหอพัก ================= 🟢
     function ensureExpenseItems(monthStr) {
       if (!appData.monthlyExpenses) appData.monthlyExpenses = {};
       if (!appData.monthlyExpenses[monthStr]) {
@@ -947,7 +949,6 @@
       });
     }
 
-    // ================= โลจิกหลัก =================
     function createDefaultData() {
       return {
         settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "" },
@@ -1048,7 +1049,6 @@
       if (tabId === 'summary') renderSummary();
     }
 
-    // 🟢 ================= อัปเดตผังห้องพัก (Dashboard) ให้มีสถานะการจ่ายเงิน ================= 🟢
     function renderDashboard() { 
       const total = appData.rooms.length;
       const occupied = appData.rooms.filter(r => r.status === 'มีผู้เช่า').length;
@@ -1105,7 +1105,6 @@
             priceColor = 'text-slate-500';
             nameColor = isMovingOut ? 'text-rose-600' : 'text-indigo-600';
 
-            // ตกแต่งการ์ดแบบทันสมัยตามสถานะการจ่ายเงิน
             if (isPaid) {
                 bgClass = 'bg-white border border-emerald-200 border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition';
                 paymentBadge = `<div class="absolute -top-2 -right-2 bg-emerald-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow border-2 border-white" title="ชำระแล้ว"><i class="fa-solid fa-check"></i></div>`;
@@ -1161,12 +1160,14 @@
       });
     }
 
+    // 🟢 ================= เพิ่มช่องโหลดมิเตอร์เริ่มต้นในหน้าแก้ไขห้อง ================= 🟢
     function openEditRoomModal(id) { 
       const r = appData.rooms.find(x => x.id === id);
       document.getElementById('modalRoomTitle').textContent = `ห้อง ${r.roomNumber}`;
       document.getElementById('editRoomId').value = r.id;
       document.getElementById('editRoomPrice').value = r.price;
       document.getElementById('editRoomStatus').value = r.status;
+      document.getElementById('editLastMeter').value = r.lastMeter !== undefined ? r.lastMeter : 0;
       document.getElementById('editElecPercent').value = r.elecPercent !== undefined ? r.elecPercent : 100;
       document.getElementById('editWaterPercent').value = r.waterPercent !== undefined ? r.waterPercent : 100;
       document.getElementById('editTenantName').value = r.tenant.name || '';
@@ -1193,6 +1194,7 @@
       const r = appData.rooms.find(x => x.id === id);
       r.price = parseFloat(document.getElementById('editRoomPrice').value) || 0;
       r.status = document.getElementById('editRoomStatus').value;
+      r.lastMeter = parseFloat(document.getElementById('editLastMeter').value) || 0;
       r.elecPercent = parseFloat(document.getElementById('editElecPercent').value) || 100;
       r.waterPercent = parseFloat(document.getElementById('editWaterPercent').value) || 100;
       r.tenant.name = document.getElementById('editTenantName').value;
