@@ -41,10 +41,14 @@
   <!-- ================= หน้าจอ LOGIN ================= -->
   <div id="loginScreen" class="fixed inset-0 bg-indigo-900 z-50 flex items-center justify-center p-4">
     <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
-      <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-        <i class="fa-solid fa-cloud"></i>
+      
+      <!-- โลโก้หอพัก (อัปเดตใหม่) -->
+      <div id="loginLogoContainer" class="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-indigo-100 flex items-center justify-center bg-indigo-50 overflow-hidden shadow-inner">
+        <i id="loginDefaultIcon" class="fa-solid fa-building text-4xl text-indigo-400"></i>
+        <img id="loginDormLogo" src="" class="hidden w-full h-full object-cover">
       </div>
-      <h2 class="text-2xl font-bold text-slate-800 mb-2">Jacky Place</h2>
+
+      <h2 class="text-2xl font-bold text-slate-800 mb-2" id="loginDormNameText">Jacky Place</h2>
       <p class="text-xs text-slate-500 mb-6 bg-slate-100 p-2 rounded">เชื่อมต่อระบบ Cloud เรียบร้อย<br>กรุณาใช้อีเมลและรหัสผ่านเพื่อเข้าสู่ระบบ</p>
       
       <form onsubmit="handleFirebaseLogin(event)">
@@ -65,7 +69,10 @@
     <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-30 no-print">
       <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
         <div class="flex items-center space-x-3">
-          <i class="fa-solid fa-building text-2xl text-amber-400"></i>
+          <div id="headerLogoBox" class="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden">
+             <i id="headerIcon" class="fa-solid fa-building text-xl text-indigo-900"></i>
+             <img id="headerImg" src="" class="hidden w-full h-full object-cover">
+          </div>
           <div>
             <h1 class="text-xl font-bold leading-tight" id="headerDormName">Jacky Place</h1>
             <p class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full inline-block mt-1"><i class="fa-solid fa-cloud-arrow-up"></i> Cloud Sync</p>
@@ -162,7 +169,7 @@
             <div class="flex items-center gap-2">
               <input type="month" id="billingMonthSelector" class="px-3 py-1.5 border rounded-lg text-sm bg-slate-50" onchange="renderBillingList()">
               <button onclick="printBatchBills()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-semibold transition flex items-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-print"></i> พิมพ์บิลทั้งหมด (A4 แนวนอน)
+                <i class="fa-solid fa-print"></i> พิมพ์บิล (A4)
               </button>
             </div>
           </div>
@@ -210,48 +217,83 @@
         </div>
       </section>
 
-      <!-- 6. Settings -->
+      <!-- 6. Settings (อัปเดตเพิ่มห้องและโลโก้) -->
       <section id="tab-settings" class="tab-content hidden">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto">
           <h2 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b">ตั้งค่าข้อมูลหอพัก & บริการ</h2>
           <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-4">
-            <div><label class="block text-sm mb-1">ชื่อหอพัก</label><input type="text" id="setDormName" class="w-full p-2 border rounded" required></div>
-            <div><label class="block text-sm mb-1">ที่อยู่</label><textarea id="setDormAddress" rows="2" class="w-full p-2 border rounded" required></textarea></div>
-            <div class="grid grid-cols-2 gap-4">
+            
+            <div class="grid grid-cols-3 gap-4">
+              <div class="col-span-2"><label class="block text-sm mb-1 font-bold text-indigo-900">ชื่อหอพัก</label><input type="text" id="setDormName" class="w-full p-2 border rounded" required></div>
+              <div class="col-span-1">
+                 <label class="block text-sm mb-1 font-bold text-indigo-900">จำนวนห้องพัก</label>
+                 <input type="number" id="setRoomCount" class="w-full p-2 border rounded font-mono font-bold text-center" min="1" required>
+                 <p class="text-[10px] text-rose-500 mt-1 leading-tight">*ระวัง: การลดจำนวนจะลบห้องท้ายสุด</p>
+              </div>
+            </div>
+            
+            <div><label class="block text-sm mb-1 font-bold text-indigo-900">ที่อยู่</label><textarea id="setDormAddress" rows="2" class="w-full p-2 border rounded" required></textarea></div>
+            
+            <div class="grid grid-cols-2 gap-4 border-t pt-4">
               <div><label class="block text-sm mb-1">ชื่อบัญชีรับเงิน</label><input type="text" id="setBankAccName" class="w-full p-2 border rounded" required></div>
               <div><label class="block text-sm mb-1">ธนาคาร</label><input type="text" id="setBankName" class="w-full p-2 border rounded" required></div>
             </div>
             <div><label class="block text-sm mb-1">เลขที่บัญชี</label><input type="text" id="setBankAccNumber" class="w-full p-2 border rounded" required></div>
-            <div class="grid grid-cols-3 gap-4 border-t pt-4">
-              <div><label class="block text-sm mb-1">ค่าไฟ (บ./หน่วย)</label><input type="number" step="0.5" id="setRateElectric" class="w-full p-2 border rounded" required></div>
+            <div class="grid grid-cols-3 gap-4">
+              <div><label class="block text-sm mb-1">ค่าไฟ (บ./น.)</label><input type="number" step="0.5" id="setRateElectric" class="w-full p-2 border rounded" required></div>
               <div><label class="block text-sm mb-1">ค่าน้ำ (เหมา)</label><input type="number" id="setRateWater" class="w-full p-2 border rounded" required></div>
               <div><label class="block text-sm mb-1">ส่วนกลาง (บ.)</label><input type="number" id="setRateCommon" class="w-full p-2 border rounded" required></div>
             </div>
 
-            <!-- ส่วนอัปโหลด QR Code -->
-            <div class="border-t pt-4 mt-4">
-              <label class="block text-sm font-bold text-indigo-900 mb-2"><i class="fa-solid fa-qrcode mr-1"></i> QR Code บัญชีรับเงิน (แสดงในบิล)</label>
-              <div class="flex items-start gap-4">
-                <div id="preview-qrcode-box" class="hidden relative w-32 h-32 border rounded-lg bg-slate-50 flex items-center justify-center p-1 shadow-sm">
-                  <img id="setBankQrCode" src="" class="max-w-full max-h-full rounded object-contain">
-                  <button type="button" onclick="deleteCloudQrCode()" class="absolute -top-2 -right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center shadow"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-                <div id="upload-qrcode-box" class="w-32 h-32 border-2 border-dashed border-indigo-300 rounded-lg bg-indigo-50 flex flex-col items-center justify-center text-indigo-600 hover:bg-indigo-100 cursor-pointer transition">
-                  <label class="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                    <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1"></i>
-                    <span class="text-xs font-semibold">อัปโหลด QR</span>
-                    <input type="file" accept="image/*" class="hidden" onchange="uploadCloudQrCode(event)">
-                  </label>
-                </div>
-                <div id="qrcode-loading" class="hidden w-32 h-32 border rounded-lg bg-slate-50 flex-col items-center justify-center text-indigo-500">
-                   <i class="fa-solid fa-spinner fa-spin text-2xl mb-1"></i>
-                   <span class="text-xs">กำลังอัปโหลด...</span>
+            <!-- ส่วนอัปโหลดรูปภาพ 2 อัน (โลโก้หอพัก และ QR Code ธนาคาร) -->
+            <div class="border-t pt-4 mt-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              
+              <!-- โลโก้หอพัก -->
+              <div>
+                <label class="block text-sm font-bold text-indigo-900 mb-2"><i class="fa-solid fa-image mr-1"></i> โลโก้หอพัก (โชว์หน้า Login)</label>
+                <div class="flex items-start gap-4">
+                  <div id="preview-logo-box" class="hidden relative w-32 h-32 border rounded-lg bg-slate-50 flex items-center justify-center p-1 shadow-sm">
+                    <img id="setDormLogoImg" src="" class="max-w-full max-h-full rounded object-contain">
+                    <button type="button" onclick="deleteCloudDormLogo()" class="absolute -top-2 -right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center shadow"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                  <div id="upload-logo-box" class="w-32 h-32 border-2 border-dashed border-indigo-300 rounded-lg bg-indigo-50 flex flex-col items-center justify-center text-indigo-600 hover:bg-indigo-100 cursor-pointer transition">
+                    <label class="cursor-pointer w-full h-full flex flex-col items-center justify-center">
+                      <i class="fa-solid fa-image text-2xl mb-1"></i>
+                      <span class="text-xs font-semibold">เลือกรูปโลโก้</span>
+                      <input type="file" accept="image/*" class="hidden" onchange="uploadCloudDormLogo(event)">
+                    </label>
+                  </div>
+                  <div id="logo-loading" class="hidden w-32 h-32 border rounded-lg bg-slate-50 flex-col items-center justify-center text-indigo-500">
+                     <i class="fa-solid fa-spinner fa-spin text-2xl mb-1"></i>
+                     <span class="text-xs">กำลังอัปโหลด...</span>
+                  </div>
                 </div>
               </div>
-              <p class="text-[10px] text-slate-500 mt-2">* อัปโหลดรูป QR Code ของบัญชีธนาคารเพื่อนำไปแสดงบนใบแจ้งหนี้</p>
+
+              <!-- QR Code บัญชีรับเงิน -->
+              <div>
+                <label class="block text-sm font-bold text-indigo-900 mb-2"><i class="fa-solid fa-qrcode mr-1"></i> QR Code บัญชี (แสดงในบิล)</label>
+                <div class="flex items-start gap-4">
+                  <div id="preview-qrcode-box" class="hidden relative w-32 h-32 border rounded-lg bg-slate-50 flex items-center justify-center p-1 shadow-sm">
+                    <img id="setBankQrCode" src="" class="max-w-full max-h-full rounded object-contain">
+                    <button type="button" onclick="deleteCloudQrCode()" class="absolute -top-2 -right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center shadow"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                  <div id="upload-qrcode-box" class="w-32 h-32 border-2 border-dashed border-indigo-300 rounded-lg bg-indigo-50 flex flex-col items-center justify-center text-indigo-600 hover:bg-indigo-100 cursor-pointer transition">
+                    <label class="cursor-pointer w-full h-full flex flex-col items-center justify-center">
+                      <i class="fa-solid fa-qrcode text-2xl mb-1"></i>
+                      <span class="text-xs font-semibold">อัปโหลด QR</span>
+                      <input type="file" accept="image/*" class="hidden" onchange="uploadCloudQrCode(event)">
+                    </label>
+                  </div>
+                  <div id="qrcode-loading" class="hidden w-32 h-32 border rounded-lg bg-slate-50 flex-col items-center justify-center text-indigo-500">
+                     <i class="fa-solid fa-spinner fa-spin text-2xl mb-1"></i>
+                     <span class="text-xs">กำลังอัปโหลด...</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="flex justify-end pt-4"><button type="submit" class="px-5 py-2 bg-indigo-700 text-white rounded shadow">บันทึกตั้งค่าขึ้น Cloud</button></div>
+            <div class="flex justify-end pt-4 border-t mt-4"><button type="submit" class="px-5 py-2.5 bg-indigo-700 text-white font-bold rounded shadow-lg">บันทึกตั้งค่าขึ้น Cloud</button></div>
           </form>
         </div>
       </section>
@@ -306,7 +348,6 @@
             <label class="text-xs mb-1 block">ติดต่อฉุกเฉิน</label><input type="text" id="editEmergencyContact" class="w-full border p-2 rounded text-sm">
           </div>
 
-          <!-- แนบเอกสาร -->
           <div class="border-t pt-5">
             <h4 class="font-bold text-sm text-indigo-700 mb-4"><i class="fa-solid fa-cloud"></i> เอกสารแนบ (ฝากรูปผ่าน ImgBB)</h4>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -428,6 +469,20 @@
     let appData = {};
     const DORM_DOC_ID = "JackyPlace_MainData";
 
+    // 🟢 ระบบโหลดรูป Logo หน้า Login ตั้งแต่เปิดเว็บ (อ้างอิงจากที่เคยเซฟไว้ในเครื่อง)
+    window.addEventListener('DOMContentLoaded', () => {
+       const savedLogo = localStorage.getItem('dormLogoUrl');
+       const savedDormName = localStorage.getItem('dormNameTitle');
+       if(savedLogo) {
+          document.getElementById('loginDormLogo').src = savedLogo;
+          document.getElementById('loginDormLogo').classList.remove('hidden');
+          document.getElementById('loginDefaultIcon').classList.add('hidden');
+       }
+       if(savedDormName) {
+          document.getElementById('loginDormNameText').textContent = savedDormName;
+       }
+    });
+
     function handleFirebaseLogin(e) {
       e.preventDefault();
       const btn = document.getElementById('btnLogin');
@@ -466,6 +521,7 @@
         
         if (!appData.monthlyExpenses) appData.monthlyExpenses = {};
         if (!appData.settings.bankQrCodeUrl) appData.settings.bankQrCodeUrl = "";
+        if (!appData.settings.dormLogoUrl) appData.settings.dormLogoUrl = "";
         appData.rooms.forEach(r => {
           if (!r.tenant.docs) r.tenant.docs = { contract: "", idcard: "", house: "" };
         });
@@ -526,6 +582,43 @@
       .catch(err => onError(err));
     }
 
+    // 🟢 ================= อัปโหลด โลโก้หอพัก (หน้าตั้งค่า) ================= 🟢
+    function uploadCloudDormLogo(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { alert('อัปโหลดเฉพาะไฟล์รูปภาพ'); return; }
+      
+      document.getElementById('upload-logo-box').classList.add('hidden');
+      document.getElementById('logo-loading').classList.remove('hidden');
+      document.getElementById('logo-loading').classList.add('flex');
+
+      compressImage(file, base64 => {
+        uploadToImgBB(base64, 
+          (url) => {
+            appData.settings.dormLogoUrl = url; 
+            saveToCloud().then(() => {
+              updateHeaderAndSettings();
+              document.getElementById('logo-loading').classList.add('hidden');
+              document.getElementById('logo-loading').classList.remove('flex');
+            });
+          }, 
+          (err) => {
+            alert("อัปโหลดโลโก้ไม่สำเร็จ กรุณาลองใหม่");
+            updateHeaderAndSettings();
+            document.getElementById('logo-loading').classList.add('hidden');
+            document.getElementById('logo-loading').classList.remove('flex');
+          }
+        );
+      });
+    }
+
+    function deleteCloudDormLogo() {
+      if(!confirm('ยืนยันลบรูปภาพโลโก้หอพัก?')) return;
+      appData.settings.dormLogoUrl = "";
+      saveToCloud().then(() => updateHeaderAndSettings());
+    }
+
+    // อัปโหลด QR Code การตั้งค่า
     function uploadCloudQrCode(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -705,11 +798,10 @@
 
     function createDefaultData() {
       return {
-        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "" },
+        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "" },
         rooms: Array.from({length: 16}, (_, i) => {
-          let n = i < 8 ? 101+i : 201+(i-8); 
-          let p = i < 8 ? 3500 : 3800;
-          return { id: String(n), roomNumber: String(n), price: p, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 1000 };
+          let n = String(i + 1); 
+          return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0 };
         }),
         monthlyRecords: {}, monthlyExpenses: {}
       };
@@ -750,7 +842,11 @@
       document.getElementById('setRateElectric').value = appData.settings.rateElectric;
       document.getElementById('setRateWater').value = appData.settings.rateWater;
       document.getElementById('setRateCommon').value = appData.settings.rateCommon;
+      
+      // ดึงจำนวนห้องมาแสดง
+      document.getElementById('setRoomCount').value = appData.rooms.length;
 
+      // จัดการ QR Code
       const qrUrl = appData.settings.bankQrCodeUrl || "";
       if (qrUrl) {
         document.getElementById('setBankQrCode').src = qrUrl;
@@ -760,6 +856,33 @@
         document.getElementById('setBankQrCode').src = "";
         document.getElementById('preview-qrcode-box').classList.add('hidden');
         document.getElementById('upload-qrcode-box').classList.remove('hidden');
+      }
+
+      // 🟢 จัดการโลโก้หอพัก
+      const logoUrl = appData.settings.dormLogoUrl || "";
+      if (logoUrl) {
+        document.getElementById('setDormLogoImg').src = logoUrl;
+        document.getElementById('preview-logo-box').classList.remove('hidden');
+        document.getElementById('upload-logo-box').classList.add('hidden');
+        
+        // แสดงใน Header ด้วย
+        document.getElementById('headerImg').src = logoUrl;
+        document.getElementById('headerImg').classList.remove('hidden');
+        document.getElementById('headerIcon').classList.add('hidden');
+
+        // เซฟลง LocalStorage เผื่อใช้แสดงหน้า Login ก่อนที่ข้อมูล Cloud จะโหลด
+        localStorage.setItem('dormLogoUrl', logoUrl);
+        localStorage.setItem('dormNameTitle', appData.settings.dormName);
+      } else {
+        document.getElementById('setDormLogoImg').src = "";
+        document.getElementById('preview-logo-box').classList.add('hidden');
+        document.getElementById('upload-logo-box').classList.remove('hidden');
+
+        document.getElementById('headerImg').classList.add('hidden');
+        document.getElementById('headerIcon').classList.remove('hidden');
+
+        localStorage.removeItem('dormLogoUrl');
+        localStorage.removeItem('dormNameTitle');
       }
     }
 
@@ -848,7 +971,7 @@
         `;
       });
     }
-
+    
     function openEditRoomModal(id) { 
       const r = appData.rooms.find(x => x.id === id);
       document.getElementById('modalRoomTitle').textContent = `ห้อง ${r.roomNumber}`;
@@ -1215,6 +1338,7 @@
       navigator.clipboard.writeText(text).then(() => alert("คัดลอกข้อความสำเร็จ นำไปวางส่งใน LINE ได้เลย!")).catch(() => alert("คัดลอกไม่สำเร็จ"));
     }
 
+    // 🟢 ================= ระบบเซฟจำนวนห้องและตั้งค่า ================= 🟢
     function saveSettings(e) { 
       e.preventDefault(); 
       appData.settings.dormName = document.getElementById('setDormName').value;
@@ -1225,8 +1349,42 @@
       appData.settings.rateElectric = parseFloat(document.getElementById('setRateElectric').value)||5;
       appData.settings.rateWater = parseFloat(document.getElementById('setRateWater').value)||150;
       appData.settings.rateCommon = parseFloat(document.getElementById('setRateCommon').value)||300;
-      saveToCloud().then(() => { updateHeaderAndSettings(); alert('บันทึกการตั้งค่าลง Cloud เรียบร้อยแล้ว'); });
+      
+      // การเพิ่มหรือลดจำนวนห้องพัก
+      const newRoomCount = parseInt(document.getElementById('setRoomCount').value);
+      if (newRoomCount && newRoomCount !== appData.rooms.length) {
+          if (newRoomCount < appData.rooms.length) {
+              if(!confirm(`⚠️ คำเตือน: คุณกำลังลดจำนวนห้องพักจาก ${appData.rooms.length} เป็น ${newRoomCount} ห้อง\nข้อมูลของห้องที่อยู่ท้ายสุดจะถูกลบถาวร! ยืนยันหรือไม่?`)) {
+                  document.getElementById('setRoomCount').value = appData.rooms.length;
+                  return; // ยกเลิกการบันทึกถ้ายกเลิก
+              }
+              // หั่น array ห้องออกตามจำนวนที่ต้องการ
+              appData.rooms = appData.rooms.slice(0, newRoomCount);
+          } else if (newRoomCount > appData.rooms.length) {
+              // เพิ่มห้องใหม่ต่อท้าย
+              const diff = newRoomCount - appData.rooms.length;
+              const startNum = appData.rooms.length + 1;
+              for(let i=0; i<diff; i++) {
+                  let nStr = String(startNum + i);
+                  appData.rooms.push({
+                      id: nStr, roomNumber: nStr, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", 
+                      tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, 
+                      lastMeter: 0
+                  });
+              }
+          }
+      }
+
+      saveToCloud().then(() => { 
+         updateHeaderAndSettings(); 
+         renderDashboard(); // รีเฟรชตารางต่างๆ ใหม่
+         renderRoomsTable();
+         renderMetersTable();
+         renderBillingList();
+         alert('บันทึกการตั้งค่าลง Cloud เรียบร้อยแล้ว'); 
+      });
     }
+    // =================================================================
     
     function exportDatabase() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
