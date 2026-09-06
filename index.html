@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  
+  <!-- Chart.js สำหรับสร้างกราฟ Dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
@@ -193,36 +196,66 @@
         </div>
       </section>
 
-      <!-- 5. Summary -->
+      <!-- 5. Summary (Dashboard อัปเดตใหม่) -->
       <section id="tab-summary" class="tab-content hidden">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-4xl mx-auto">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-5xl mx-auto mb-6">
+          
           <div class="flex justify-between items-center mb-6 pb-4 border-b">
-            <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-chart-line text-indigo-600 mr-2"></i>สรุปผลประกอบการประจำเดือน</h2>
+            <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-chart-pie text-indigo-600 mr-2"></i>แดชบอร์ดสรุปรายรับ-รายจ่าย</h2>
             <input type="month" id="summaryMonthSelector" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-semibold bg-slate-50 text-indigo-900" onchange="renderSummary()">
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 h-full relative">
-                <h3 class="font-bold text-blue-900 mb-4 border-b border-blue-200 pb-2"><i class="fa-solid fa-arrow-down text-blue-600"></i> สรุปรายรับ</h3>
-                <div class="flex justify-between items-center mb-3"><span class="text-sm text-blue-800">ยอดเรียกเก็บทั้งหมด</span><span class="font-mono font-bold text-slate-700" id="sumExpectedIncome">0</span></div>
-                <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100 shadow-sm mt-4"><span class="text-sm font-bold text-blue-900">รับเงินจริงแล้ว</span><span class="font-mono text-xl font-bold text-blue-700" id="sumCollectedIncome">0</span></div>
-              </div>
+
+          <!-- 4 Summary Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm relative overflow-hidden">
+              <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-blue-500"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+              <p class="text-xs font-semibold text-blue-800 mb-1">ยอดเรียกเก็บรอบนี้</p>
+              <p class="text-2xl font-bold text-blue-900" id="sumExpectedIncome">0.00</p>
             </div>
-            <div>
-              <div class="bg-rose-50 border border-rose-100 rounded-xl p-5">
-                <h3 class="font-bold text-rose-900 mb-4 border-b border-rose-200 pb-2"><i class="fa-solid fa-arrow-up text-rose-600"></i> บันทึกรายจ่าย</h3>
-                <form id="expenseForm" onsubmit="saveExpenses(event)" class="space-y-3">
-                  <div class="flex justify-between"><label class="text-sm w-1/2">ค่าไฟฟ้าหอพัก</label><input type="number" id="expElectric" class="w-1/2 p-1 border rounded text-right text-sm"></div>
-                  <div class="flex justify-between"><label class="text-sm w-1/2">ค่าน้ำหอพัก</label><input type="number" id="expWater" class="w-1/2 p-1 border rounded text-right text-sm"></div>
-                  <div class="flex justify-between"><label class="text-sm w-1/2">ค่าซ่อม/แม่บ้าน</label><input type="number" id="expMaintenance" class="w-1/2 p-1 border rounded text-right text-sm"></div>
-                  <div class="flex justify-between"><label class="text-sm w-1/2">อื่นๆ</label><input type="number" id="expOther" class="w-1/2 p-1 border rounded text-right text-sm"></div>
-                  <div class="pt-3 border-t flex justify-between font-bold text-rose-900"><span>รวมรายจ่าย</span><span id="sumTotalExpense">0</span></div>
-                  <button type="submit" class="w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg text-sm font-semibold shadow">บันทึกรายจ่ายบน Cloud</button>
-                </form>
-              </div>
+            <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 shadow-sm relative overflow-hidden">
+              <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-emerald-500"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+              <p class="text-xs font-semibold text-emerald-800 mb-1">รับจริงแล้ว (Collected)</p>
+              <p class="text-2xl font-bold text-emerald-700" id="sumCollectedIncome">0.00</p>
+            </div>
+            <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 shadow-sm relative overflow-hidden">
+              <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-rose-500"><i class="fa-solid fa-arrow-trend-down"></i></div>
+              <p class="text-xs font-semibold text-rose-800 mb-1">รวมรายจ่าย (Expenses)</p>
+              <p class="text-2xl font-bold text-rose-700" id="sumTotalExpense">0.00</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden">
+              <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-white"><i class="fa-solid fa-wallet"></i></div>
+              <p class="text-xs font-semibold text-slate-300 mb-1">กำไรสุทธิ (Net Profit)</p>
+              <p class="text-2xl font-bold text-emerald-400" id="sumNetProfit">0.00</p>
             </div>
           </div>
-          <div class="mt-6 bg-slate-800 text-white rounded-xl p-6 text-center shadow-lg"><h3 class="text-sm font-medium text-slate-300 mb-1">กำไร/ขาดทุน สุทธิ (Net Profit)</h3><div id="sumNetProfit" class="text-4xl font-bold text-emerald-400">0.00</div></div>
+
+          <!-- Chart & Expense Management Split -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Area 1: Chart -->
+            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-center">
+              <h3 class="font-bold text-slate-700 mb-4 border-b pb-2"><i class="fa-solid fa-chart-column text-indigo-500"></i> กราฟสรุปผลประกอบการ</h3>
+              <div class="w-full h-64 relative">
+                <canvas id="summaryChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Area 2: Dynamic Expense Management -->
+            <div class="bg-rose-50 border border-rose-100 rounded-xl p-5 flex flex-col shadow-sm max-h-[380px]">
+              <h3 class="font-bold text-rose-900 mb-3 border-b border-rose-200 pb-2"><i class="fa-solid fa-list-check text-rose-600"></i> บันทึกรายจ่ายประจำเดือน</h3>
+              
+              <div class="overflow-y-auto flex-1 pr-2 mb-3 space-y-2" id="expenseItemsContainer">
+                 <!-- Dynamic Expense Items will be injected here -->
+              </div>
+              
+              <div class="pt-3 border-t border-rose-200 space-y-2">
+                 <button onclick="addExpenseItem()" class="w-full border border-dashed border-rose-300 text-rose-600 bg-white hover:bg-rose-100 rounded-lg text-xs py-2 transition font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มรายการรายจ่าย</button>
+                 <button onclick="saveExpenses()" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg text-sm font-semibold shadow transition">บันทึกรายจ่ายทั้งหมดขึ้น Cloud</button>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </section>
 
@@ -355,7 +388,6 @@
             <label class="text-xs mb-1 block">ติดต่อฉุกเฉิน</label><input type="text" id="editEmergencyContact" class="w-full border p-2 rounded text-sm">
           </div>
 
-          <!-- แนบเอกสาร -->
           <div class="border-t pt-5">
             <h4 class="font-bold text-sm text-indigo-700 mb-4"><i class="fa-solid fa-cloud"></i> เอกสารแนบ (ฝากรูปผ่าน ImgBB)</h4>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -434,7 +466,6 @@
           <tr><td class="py-2">ค่าไฟ <div class="text-[10px]" id="invMeterDetails"></div></td><td class="py-2 text-center" id="invElecUnits"></td><td class="py-2 text-right" id="invElecCost"></td></tr>
           <tr><td class="py-2" id="invWaterLabel">ค่าน้ำประปา</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invWaterCost"></td></tr>
           <tr><td class="py-2">ส่วนกลาง</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
-          <!-- ตารางค่าอื่นๆ จะแสดงตรงนี้ -->
           <tbody id="invOtherItemsBody"></tbody>
           <tr class="border-t-2 font-bold bg-slate-50"><td class="py-2">ยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-base text-indigo-700" id="invTotalAmount"></td></tr>
         </table>
@@ -611,7 +642,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลดโลโก้ไม่สำเร็จ กรุณาลองใหม่");
+            alert("อัปโหลดโลโก้ไม่สำเร็จ");
             updateHeaderAndSettings();
             document.getElementById('logo-loading').classList.add('hidden');
             document.getElementById('logo-loading').classList.remove('flex');
@@ -629,7 +660,7 @@
     function uploadCloudQrCode(event) {
       const file = event.target.files[0];
       if (!file) return;
-      if (!file.type.startsWith('image/')) { alert('อัปโหลดเฉพาะไฟล์รูปภาพ'); return; }
+      if (!file.type.startsWith('image/')) { alert('อัปโหลดรูปภาพเท่านั้น'); return; }
       
       document.getElementById('upload-qrcode-box').classList.add('hidden');
       document.getElementById('qrcode-loading').classList.remove('hidden');
@@ -646,7 +677,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลด QR Code ไม่สำเร็จ กรุณาลองใหม่");
+            alert("อัปโหลด QR Code ไม่สำเร็จ");
             updateHeaderAndSettings();
             document.getElementById('qrcode-loading').classList.add('hidden');
             document.getElementById('qrcode-loading').classList.remove('flex');
@@ -803,14 +834,13 @@
       saveToCloud().then(() => renderBillingList());
     }
 
-    // 🟢 ================= ฟังก์ชัน อัปเดตค่าใช้จ่ายอื่นๆ (รองรับหลายรายการ) ================= 🟢
+    // 🟢 ================= ฟังก์ชัน อัปเดตค่าใช้จ่ายอื่นๆ ของรายห้อง (รองรับหลายรายการ) ================= 🟢
     function ensureOtherItems(monthStr, roomId) {
       if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
       if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = { paid: false };
       let rec = appData.monthlyRecords[monthStr][roomId];
       if (!rec.otherItems) {
         rec.otherItems = [];
-        // ย้ายข้อมูลเก่าแบบ 1 รายการมารวมใน array
         if (rec.otherCost) {
           rec.otherItems.push({ label: rec.otherLabel || 'อื่นๆ', cost: parseFloat(rec.otherCost) || 0 });
           delete rec.otherCost;
@@ -838,8 +868,94 @@
       rec.otherItems.splice(index, 1);
       saveToCloud().then(() => { renderBillingList(); renderDashboard(); });
     }
-    // =========================================================================================
 
+    // 🟢 ================= ฟังก์ชัน อัปเดตรายจ่ายของหอพัก (Dashboard) ================= 🟢
+    function ensureExpenseItems(monthStr) {
+      if (!appData.monthlyExpenses) appData.monthlyExpenses = {};
+      if (!appData.monthlyExpenses[monthStr]) {
+        appData.monthlyExpenses[monthStr] = {
+          items: [
+            { label: 'ค่าไฟฟ้าหอพัก', amount: 0 },
+            { label: 'ค่าน้ำหอพัก', amount: 0 },
+            { label: 'ค่าซ่อมบำรุง/แม่บ้าน', amount: 0 }
+          ]
+        };
+      } else if (!appData.monthlyExpenses[monthStr].items) {
+        let old = appData.monthlyExpenses[monthStr];
+        appData.monthlyExpenses[monthStr] = {
+          items: [
+            { label: 'ค่าไฟฟ้าหอพัก', amount: old.electric || 0 },
+            { label: 'ค่าน้ำหอพัก', amount: old.water || 0 },
+            { label: 'ค่าซ่อม/แม่บ้าน', amount: old.maintenance || 0 },
+            { label: 'อื่นๆ', amount: old.other || 0 }
+          ].filter(item => item.amount > 0 || item.label !== 'อื่นๆ')
+        };
+      }
+      return appData.monthlyExpenses[monthStr].items;
+    }
+
+    function addExpenseItem() {
+      const monthStr = document.getElementById('summaryMonthSelector').value;
+      let items = ensureExpenseItems(monthStr);
+      items.push({ label: '', amount: 0 });
+      renderSummary(); 
+    }
+
+    function updateExpenseField(monthStr, idx, field, val) {
+      let items = ensureExpenseItems(monthStr);
+      if (field === 'label') items[idx].label = val;
+      if (field === 'amount') items[idx].amount = parseFloat(val) || 0;
+      renderSummary();
+    }
+
+    function removeExpenseItem(monthStr, idx) {
+      let items = ensureExpenseItems(monthStr);
+      items.splice(idx, 1);
+      renderSummary(); 
+    }
+
+    function saveExpenses() {
+      saveToCloud().then(() => { alert('บันทึกข้อมูลรายจ่ายประจำเดือนลง Cloud เรียบร้อยแล้ว'); });
+    }
+
+    let summaryChartInstance = null;
+    function updateSummaryChart(income, expense, profit) {
+      const ctx = document.getElementById('summaryChart');
+      if(!ctx) return;
+      
+      if(summaryChartInstance) { summaryChartInstance.destroy(); }
+      
+      summaryChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: ['รายรับ (เก็บแล้ว)', 'รายจ่าย', 'กำไรสุทธิ'],
+              datasets: [{
+                  label: 'ยอดเงิน (บาท)',
+                  data: [income, expense, profit],
+                  backgroundColor: [
+                      'rgba(16, 185, 129, 0.7)', 
+                      'rgba(244, 63, 94, 0.7)',  
+                      profit >= 0 ? 'rgba(59, 130, 246, 0.7)' : 'rgba(244, 63, 94, 0.7)' 
+                  ],
+                  borderColor: [
+                      'rgb(16, 185, 129)',
+                      'rgb(244, 63, 94)',
+                      profit >= 0 ? 'rgb(59, 130, 246)' : 'rgb(244, 63, 94)'
+                  ],
+                  borderWidth: 1,
+                  borderRadius: 4
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false }, tooltip: { enabled: false } },
+              scales: { y: { beginAtZero: true } }
+          }
+      });
+    }
+
+    // ================= โลจิกหลัก =================
     function createDefaultData() {
       return {
         settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "" },
@@ -1019,107 +1135,6 @@
       });
     }
 
-    function openEditRoomModal(id) { 
-      const r = appData.rooms.find(x => x.id === id);
-      document.getElementById('modalRoomTitle').textContent = `ห้อง ${r.roomNumber}`;
-      document.getElementById('editRoomId').value = r.id;
-      document.getElementById('editRoomPrice').value = r.price;
-      document.getElementById('editRoomStatus').value = r.status;
-      document.getElementById('editElecPercent').value = r.elecPercent !== undefined ? r.elecPercent : 100;
-      document.getElementById('editWaterPercent').value = r.waterPercent !== undefined ? r.waterPercent : 100;
-      document.getElementById('editTenantName').value = r.tenant.name || '';
-      document.getElementById('editTenantNickname').value = r.tenant.nickname || '';
-      document.getElementById('editTenantPhone').value = r.tenant.phone || '';
-      document.getElementById('editTenantIdCard').value = r.tenant.idCard || '';
-      document.getElementById('editDeposit').value = r.tenant.deposit || '';
-      document.getElementById('editMoveIn').value = r.tenant.moveIn || '';
-      document.getElementById('editMoveOut').value = r.tenant.moveOut || '';
-      document.getElementById('editCarPlate').value = r.tenant.carPlate || '';
-      document.getElementById('editEmergencyContact').value = r.tenant.emergency || '';
-      
-      const docs = r.tenant.docs || {};
-      renderDocPreview(docs.contract, 'contract');
-      renderDocPreview(docs.idcard, 'idcard');
-      renderDocPreview(docs.house, 'house');
-
-      document.getElementById('tenantModal').classList.remove('hidden'); 
-    }
-
-    function saveTenantData(e) {
-      e.preventDefault();
-      const id = document.getElementById('editRoomId').value;
-      const r = appData.rooms.find(x => x.id === id);
-      r.price = parseFloat(document.getElementById('editRoomPrice').value) || 0;
-      r.status = document.getElementById('editRoomStatus').value;
-      r.elecPercent = parseFloat(document.getElementById('editElecPercent').value) || 100;
-      r.waterPercent = parseFloat(document.getElementById('editWaterPercent').value) || 100;
-      r.tenant.name = document.getElementById('editTenantName').value;
-      r.tenant.nickname = document.getElementById('editTenantNickname').value;
-      r.tenant.phone = document.getElementById('editTenantPhone').value;
-      r.tenant.idCard = document.getElementById('editTenantIdCard').value;
-      r.tenant.deposit = parseFloat(document.getElementById('editDeposit').value) || 0;
-      r.tenant.moveIn = document.getElementById('editMoveIn').value;
-      r.tenant.moveOut = document.getElementById('editMoveOut').value;
-      r.tenant.carPlate = document.getElementById('editCarPlate').value;
-      r.tenant.emergency = document.getElementById('editEmergencyContact').value;
-      
-      saveToCloud().then(() => {
-        closeModal('tenantModal'); renderRoomsTable(); renderDashboard();
-      });
-    }
-
-    function renderMetersTable() { 
-      const monthStr = document.getElementById('meterBillingMonth').value;
-      const tbody = document.getElementById('meterTableBody'); tbody.innerHTML = '';
-      if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
-      const curMonthData = appData.monthlyRecords[monthStr];
-
-      appData.rooms.forEach(r => {
-        if(r.status !== 'มีผู้เช่า' || calculateRoomRent(r, monthStr).days === 0) return;
-        const rec = curMonthData[r.id] || { curMeter: r.lastMeter };
-        const prevMeter = r.lastMeter;
-        const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
-        const units = Math.max(0, curMeter - prevMeter);
-        const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100) / 100);
-
-        let meterPhotoHtml = `
-          <label class="cursor-pointer bg-white border border-indigo-200 px-2 py-1.5 rounded text-[11px] hover:bg-indigo-50 font-semibold inline-block w-full text-center text-indigo-700 transition">
-            <i class="fa-solid fa-camera mr-1"></i> อัปโหลดรูป <input type="file" accept="image/*" class="hidden" onchange="uploadCloudMeter(event, '${r.id}')">
-          </label>
-        `;
-        if (rec.meterUrl) {
-          meterPhotoHtml = `
-            <div class="flex items-center justify-between gap-2 bg-slate-50 p-1 border rounded">
-              <a href="${rec.meterUrl}" target="_blank" class="w-12 h-8 rounded overflow-hidden block">
-                <img src="${rec.meterUrl}" class="w-full h-full object-cover">
-              </a>
-              <button onclick="deleteCloudMeter('${r.id}')" class="text-rose-500 hover:text-rose-700 bg-white border border-rose-200 hover:bg-rose-50 px-2 py-1 rounded text-[10px]"><i class="fa-solid fa-rotate-left"></i> ถ่ายใหม่</button>
-            </div>
-          `;
-        }
-
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-50 border-b">
-            <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${prevMeter}</td>
-            <td class="px-4 py-2"><input type="number" value="${curMeter}" class="w-24 px-2 py-1 border rounded text-sm text-indigo-700 bg-white" onchange="updateSingleMeter('${r.id}', this.value)"></td>
-            <td class="px-4 py-2">
-              <div id="meterStatus-${r.id}" class="w-36">${meterPhotoHtml}</div>
-            </td>
-            <td class="px-4 py-2 font-bold" id="units-${r.id}">${units}</td>
-            <td class="px-4 py-2 font-bold text-indigo-900" id="cost-${r.id}">${elecCost.toLocaleString()} บ.</td>
-          </tr>
-        `;
-      });
-    }
-
-    function updateSingleMeter(roomId, val) {
-      const monthStr = document.getElementById('meterBillingMonth').value;
-      if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
-      if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = {};
-      appData.monthlyRecords[monthStr][roomId].curMeter = parseFloat(val) || 0;
-      saveToCloud().then(() => renderMetersTable());
-    }
-
     function renderBillingList() { 
       const monthStr = document.getElementById('billingMonthSelector').value;
       const tbody = document.getElementById('billingTableBody'); tbody.innerHTML = '';
@@ -1136,7 +1151,6 @@
         const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100)/100);
         const waterCost = appData.settings.rateWater * ((r.waterPercent||100)/100);
         
-        // 🟢 ส่วนจัดการค่าใช้จ่ายอื่นๆ (ดึงมาจาก array)
         let otherItems = record.otherItems || [];
         if (record.otherCost && otherItems.length === 0) {
            otherItems.push({ label: record.otherLabel || '', cost: parseFloat(record.otherCost) || 0 });
@@ -1168,7 +1182,6 @@
           `;
         }
 
-        // 🟢 UI สำหรับแก้ไขค่าอื่นๆ (เพิ่มได้หลายรายการ)
         let otherUI = `
           <div class="flex flex-col gap-1 w-[130px]">
             ${otherItems.map((item, idx) => `
@@ -1194,13 +1207,6 @@
           </tr>
         `;
       });
-    }
-
-    function togglePaidStatus(monthStr, roomId) {
-      if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
-      if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = {};
-      appData.monthlyRecords[monthStr][roomId].paid = !appData.monthlyRecords[monthStr][roomId].paid;
-      saveToCloud().then(() => { renderBillingList(); renderDashboard(); });
     }
 
     function renderSummary() {
@@ -1232,26 +1238,36 @@
       document.getElementById('sumExpectedIncome').textContent = totalExpected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
       document.getElementById('sumCollectedIncome').textContent = totalCollected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-      const exp = appData.monthlyExpenses[monthStr] || {};
-      document.getElementById('expElectric').value = exp.electric || ''; document.getElementById('expWater').value = exp.water || '';
-      document.getElementById('expMaintenance').value = exp.maintenance || ''; document.getElementById('expOther').value = exp.other || '';
-
-      const totalExp = (exp.electric||0) + (exp.water||0) + (exp.maintenance||0) + (exp.other||0);
+      // จัดการรายการรายจ่าย Dashboard
+      const expenseItems = ensureExpenseItems(monthStr);
+      let totalExp = 0;
+      let expHtml = '';
+      
+      expenseItems.forEach((item, idx) => {
+          totalExp += parseFloat(item.amount) || 0;
+          expHtml += `
+              <div class="flex justify-between items-center gap-2 mb-2">
+                  <input type="text" placeholder="ชื่อรายการ..." value="${item.label}" onchange="updateExpenseField('${monthStr}', ${idx}, 'label', this.value)" class="w-1/2 p-1.5 border border-rose-200 rounded text-sm bg-white">
+                  <input type="number" placeholder="ยอดเงิน" value="${item.amount || ''}" onchange="updateExpenseField('${monthStr}', ${idx}, 'amount', this.value)" class="w-1/3 p-1.5 border border-rose-200 rounded text-sm text-right bg-white text-rose-700 font-bold">
+                  <button onclick="removeExpenseItem('${monthStr}', ${idx})" class="text-rose-400 hover:text-rose-600 px-2"><i class="fa-solid fa-trash"></i></button>
+              </div>
+          `;
+      });
+      
+      document.getElementById('expenseItemsContainer').innerHTML = expHtml;
       document.getElementById('sumTotalExpense').textContent = totalExp.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
       
       const netProfit = totalCollected - totalExp;
-      document.getElementById('sumNetProfit').textContent = netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    }
+      const profitEl = document.getElementById('sumNetProfit');
+      profitEl.textContent = netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      
+      if (netProfit >= 0) {
+         profitEl.className = "text-2xl font-bold text-emerald-400";
+      } else {
+         profitEl.className = "text-2xl font-bold text-rose-400";
+      }
 
-    function saveExpenses(e) {
-      e.preventDefault();
-      const monthStr = document.getElementById('summaryMonthSelector').value;
-      if (!appData.monthlyExpenses[monthStr]) appData.monthlyExpenses[monthStr] = {};
-      appData.monthlyExpenses[monthStr] = {
-        electric: parseFloat(document.getElementById('expElectric').value) || 0, water: parseFloat(document.getElementById('expWater').value) || 0,
-        maintenance: parseFloat(document.getElementById('expMaintenance').value) || 0, other: parseFloat(document.getElementById('expOther').value) || 0
-      };
-      saveToCloud().then(() => { renderSummary(); alert('บันทึกข้อมูลรายจ่ายประจำเดือนเรียบร้อยแล้ว'); });
+      updateSummaryChart(totalCollected, totalExp, netProfit);
     }
 
     let currentInvoiceData = {};
@@ -1319,11 +1335,9 @@
       document.getElementById('invWaterCost').textContent = currentInvoiceData.waterCost.toLocaleString()+".00";
       
       document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString()+".00";
-      
-      // 🟢 แทรกข้อมูลค่าใช้จ่ายอื่นๆ ลงในตารางใบแจ้งหนี้
       document.getElementById('invOtherItemsBody').innerHTML = otherHtml;
-
       document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString()+" บาท";
+      
       document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
       document.getElementById('invBankAcc').textContent = currentInvoiceData.bankAcc;
       document.getElementById('invBankOwner').textContent = currentInvoiceData.bankOwner;
