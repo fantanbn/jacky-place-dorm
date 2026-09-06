@@ -9,6 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tesseract.js สำหรับทำ OCR -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <!-- Firebase SDKs -->
@@ -165,7 +166,7 @@
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
-                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">เดือนก่อน</th><th class="px-4 py-3">เดือนนี้ (หน่วย)</th><th class="px-4 py-3">รูปภาพมิเตอร์ (Cloud)</th><th class="px-4 py-3">หน่วยที่ใช้</th><th class="px-4 py-3">รวมค่าไฟ</th></tr>
+                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">เดือนก่อน</th><th class="px-4 py-3">เดือนนี้ (หน่วย)</th><th class="px-4 py-3">รูปภาพมิเตอร์ & AI สแกน</th><th class="px-4 py-3">หน่วยที่ใช้</th><th class="px-4 py-3">รวมค่าไฟ</th></tr>
               </thead>
               <tbody id="meterTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
@@ -382,7 +383,7 @@
     </div>
   </div>
 
-  <!-- MODAL: พรีวิวใบแจ้งหนี้ (เพิ่ม QR Code) -->
+  <!-- MODAL: พรีวิวใบแจ้งหนี้ (บิลเดี่ยว) -->
   <div id="invoiceModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[95vh]">
       <div class="p-4 bg-slate-800 text-white flex justify-between items-center no-print">
@@ -407,7 +408,6 @@
           <tr class="border-t-2 font-bold bg-slate-50"><td class="py-2">ยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-base text-indigo-700" id="invTotalAmount"></td></tr>
         </table>
         
-        <!-- ช่องทางการชำระเงิน + QR Code -->
         <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-2 text-xs flex justify-between items-center">
           <div>
             <p class="font-bold text-indigo-900 mb-1">ช่องทางการชำระเงิน:</p>
@@ -431,7 +431,6 @@
 
   <!-- ======================= JAVASCRIPT ======================= -->
   <script>
-    // 🔴 1. นำ Firebase Config จากเว็บไซต์ Firebase ของคุณมาวางแทนที่ตรงนี้
     const firebaseConfig = {
 		apiKey: "AIzaSyDsoKwoSoVrwONtB_pw3jl_NJeS8dPq9Qw",
 		authDomain: "jacky-place.firebaseapp.com",
@@ -440,11 +439,7 @@
 		messagingSenderId: "622847780010",
 		appId: "1:622847780010:web:69a2731ef3b10954285cd3"
     };
-
-    // 🔴 2. นำ ImgBB API Key ของคุณมาวางตรงนี้
     const IMGBB_API_KEY = "0fc8fbab2adfab04d6333ba40dbbbff9"; 
-
-    // ==============================================================
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -453,7 +448,6 @@
     let appData = {};
     const DORM_DOC_ID = "JackyPlace_MainData";
 
-    // ================= ระบบ LOGIN FIREBASE =================
     function handleFirebaseLogin(e) {
       e.preventDefault();
       const btn = document.getElementById('btnLogin');
@@ -480,7 +474,6 @@
       }
     });
 
-    // ================= โหลด/บันทึกข้อมูล CLOUD =================
     async function initAppFromCloud() {
       try {
         const doc = await db.collection("DormManager").doc(DORM_DOC_ID).get();
@@ -522,7 +515,6 @@
       catch (err) { alert("ไม่สามารถบันทึกข้อมูลขึ้น Cloud ได้"); }
     }
 
-    // ================= ระบบอัปโหลดรูปภาพ =================
     function compressImage(file, callback) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -554,7 +546,6 @@
       .catch(err => onError(err));
     }
 
-    // อัปโหลด QR Code การตั้งค่า
     function uploadCloudQrCode(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -590,7 +581,6 @@
       saveToCloud().then(() => updateHeaderAndSettings());
     }
 
-    // อัปโหลดเอกสารห้อง
     function uploadCloudDoc(event, docType) {
       const file = event.target.files[0];
       if (!file) return;
@@ -644,26 +634,74 @@
       }
     }
 
-    // อัปโหลดมิเตอร์
+    // 🟢 ================= ระบบอัปโหลดมิเตอร์ & สแกน OCR (ทำงานพร้อมกัน) ================= 🟢
     function uploadCloudMeter(event, roomId) {
       const file = event.target.files[0];
       if (!file) return;
       const monthStr = document.getElementById('meterBillingMonth').value;
       const statusSpan = document.getElementById(`meterStatus-${roomId}`);
-      statusSpan.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-500"></i> รออัปโหลด...`;
+      
+      // แสดงสถานะระหว่างรออัปโหลดและสแกน OCR
+      statusSpan.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-2 border border-indigo-200 rounded bg-indigo-50 text-indigo-600 text-[10px]">
+          <i class="fa-solid fa-spinner fa-spin text-lg mb-1"></i>
+          <span class="text-center leading-tight">กำลังอัปโหลดรูป<br>& AI สแกนเลข...</span>
+        </div>
+      `;
 
-      compressImage(file, base64 => {
-        uploadToImgBB(base64, 
-          (url) => {
-            if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
-            if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = { paid: false };
-            appData.monthlyRecords[monthStr][roomId].meterUrl = url;
-            saveToCloud().then(() => renderMetersTable());
-          },
-          (err) => { statusSpan.innerHTML = `<span class="text-rose-500">อัปโหลดพลาด</span>`; }
-        );
+      // 1. Process อัปโหลดรูปไป ImgBB (Cloud)
+      const uploadProcess = new Promise((resolve, reject) => {
+        compressImage(file, base64 => {
+          uploadToImgBB(base64, resolve, reject);
+        });
+      });
+
+      // 2. Process ให้ Tesseract.js (AI) อ่านตัวเลขจากภาพ
+      const ocrProcess = Tesseract.recognize(file, 'eng')
+        .then(res => res.data.text)
+        .catch(err => "");
+
+      // รอจนกว่าทั้ง 2 อย่างจะเสร็จ
+      Promise.allSettled([uploadProcess, ocrProcess]).then(results => {
+        const uploadRes = results[0];
+        const ocrRes = results[1];
+
+        if (!appData.monthlyRecords[monthStr]) appData.monthlyRecords[monthStr] = {};
+        if (!appData.monthlyRecords[monthStr][roomId]) appData.monthlyRecords[monthStr][roomId] = { paid: false };
+        
+        let ocrFound = false;
+        let candidateNumber = "";
+
+        // บันทึกลิงก์รูปถ้าอัปโหลดสำเร็จ
+        if (uploadRes.status === 'fulfilled' && uploadRes.value) {
+          appData.monthlyRecords[monthStr][roomId].meterUrl = uploadRes.value;
+        }
+
+        // ดึงตัวเลขจาก AI ถ้าสแกนสำเร็จ
+        if (ocrRes.status === 'fulfilled' && ocrRes.value) {
+          const matches = ocrRes.value.match(/\d+/g);
+          if (matches && matches.length > 0) {
+            // หาตัวเลขที่มีความยาว 3 ถึง 6 หลัก
+            candidateNumber = matches.find(m => m.length >= 3 && m.length <= 6) || matches[0];
+            appData.monthlyRecords[monthStr][roomId].curMeter = parseFloat(candidateNumber) || 0;
+            ocrFound = true;
+          }
+        }
+
+        // บันทึกลงระบบ Cloud และโหลดตารางใหม่ให้ผู้ใช้ดู
+        saveToCloud().then(() => {
+          renderMetersTable();
+          
+          // แจ้งเตือนเพื่อให้ผู้ใช้ตรวจสอบและสามารถแก้ไขได้เอง (Fallback Logic)
+          if (ocrFound) {
+            alert(`🔍 AI สแกนตัวเลขจากภาพได้: ${candidateNumber}\n\n👉 ระบบนำตัวเลขใส่ในช่องให้แล้ว กรุณาตรวจสอบความถูกต้องอีกครั้ง หากพบว่า AI อ่านผิด คุณสามารถคลิกแก้ไขตัวเลขในช่องได้เลยครับ`);
+          } else {
+            alert(`⚠️ AI ไม่สามารถอ่านตัวเลขจากภาพนี้ได้ (อาจจะเบลอหรือมีแสงสะท้อน)\n👉 กรุณากรอกตัวเลขมิเตอร์ด้วยตนเองในช่องครับ`);
+          }
+        });
       });
     }
+    // =========================================================================================
 
     function deleteCloudMeter(roomId) {
       if(!confirm('ลบรูปมิเตอร์นี้?')) return;
@@ -672,7 +710,6 @@
       saveToCloud().then(() => renderMetersTable());
     }
 
-    // ================= โลจิกทั่วไปของระบบ =================
     function createDefaultData() {
       return {
         settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "" },
@@ -883,17 +920,17 @@
         const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100) / 100);
 
         let meterPhotoHtml = `
-          <label class="cursor-pointer bg-white border px-2 py-1 rounded text-xs hover:bg-slate-100 inline-block w-full text-center">
-            <i class="fa-solid fa-camera text-indigo-600"></i> อัปโหลดรูป <input type="file" accept="image/*" class="hidden" onchange="uploadCloudMeter(event, '${r.id}')">
+          <label class="cursor-pointer bg-white border border-indigo-200 px-2 py-1.5 rounded text-[11px] hover:bg-indigo-50 font-semibold inline-block w-full text-center text-indigo-700 transition">
+            <i class="fa-solid fa-camera mr-1"></i> อัปโหลดรูป <input type="file" accept="image/*" class="hidden" onchange="uploadCloudMeter(event, '${r.id}')">
           </label>
         `;
         if (rec.meterUrl) {
           meterPhotoHtml = `
-            <div class="flex items-center gap-2">
-              <a href="${rec.meterUrl}" target="_blank" class="w-12 h-8 rounded border overflow-hidden block">
+            <div class="flex items-center justify-between gap-2 bg-slate-50 p-1 border rounded">
+              <a href="${rec.meterUrl}" target="_blank" class="w-12 h-8 rounded overflow-hidden block">
                 <img src="${rec.meterUrl}" class="w-full h-full object-cover">
               </a>
-              <button onclick="deleteCloudMeter('${r.id}')" class="text-red-500 hover:bg-red-100 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
+              <button onclick="deleteCloudMeter('${r.id}')" class="text-rose-500 hover:text-rose-700 bg-white border border-rose-200 hover:bg-rose-50 px-2 py-1 rounded text-[10px]"><i class="fa-solid fa-rotate-left"></i> ถ่ายใหม่</button>
             </div>
           `;
         }
@@ -903,10 +940,10 @@
             <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${prevMeter}</td>
             <td class="px-4 py-2"><input type="number" value="${curMeter}" class="w-24 px-2 py-1 border rounded text-sm text-indigo-700 bg-white" onchange="updateSingleMeter('${r.id}', this.value)"></td>
             <td class="px-4 py-2">
-              <div id="meterStatus-${r.id}">${meterPhotoHtml}</div>
+              <div id="meterStatus-${r.id}" class="w-36">${meterPhotoHtml}</div>
             </td>
-            <td class="px-4 py-2" id="units-${r.id}">${units}</td>
-            <td class="px-4 py-2 font-bold" id="cost-${r.id}">${elecCost.toLocaleString()} บ.</td>
+            <td class="px-4 py-2 font-bold" id="units-${r.id}">${units}</td>
+            <td class="px-4 py-2 font-bold text-indigo-900" id="cost-${r.id}">${elecCost.toLocaleString()} บ.</td>
           </tr>
         `;
       });
@@ -1007,13 +1044,10 @@
     // ====== Invoice ======
     let currentInvoiceData = {};
     
-    // ฟังก์ชันพิมพ์บิลเดี่ยว
     function printSingleBill() {
       document.body.classList.add('printing-single');
       window.print();
-      setTimeout(() => {
-        document.body.classList.remove('printing-single');
-      }, 500);
+      setTimeout(() => { document.body.classList.remove('printing-single'); }, 500);
     }
 
     function openInvoiceModal(roomId) {
@@ -1077,7 +1111,6 @@
       document.getElementById('invoiceModal').classList.remove('hidden');
     }
 
-    // ฟังก์ชันพิมพ์บิลแบบกลุ่ม 6 บิลต่อหน้ากระดาษ A4
     function printBatchBills() {
       const monthStr = document.getElementById('billingMonthSelector').value;
       const mData = appData.monthlyRecords[monthStr] || {};
@@ -1107,7 +1140,6 @@
         const qrUrl = appData.settings.bankQrCodeUrl || "";
         let qrHtml = qrUrl ? `<img src="${qrUrl}" class="w-12 h-12 object-contain rounded bg-white p-0.5 border">` : '';
 
-        // กล่องบิลขนาดความกว้าง 1/3 (33.33%) และความสูง 49vh เพื่อให้พอดี 6 กล่องต่อ 1 หน้ากระดาษ A4 แนวนอน
         html += `
           <div class="border border-dashed border-slate-400 p-3 flex flex-col justify-between" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid;">
             <div class="text-center mb-1">
