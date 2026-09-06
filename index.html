@@ -984,8 +984,7 @@
       };
       saveToCloud().then(() => { renderSummary(); alert('บันทึกข้อมูลรายจ่ายประจำเดือนเรียบร้อยแล้ว'); });
     }
-
-    // ====== Invoice ======
+// ====== Invoice ======
     let currentInvoiceData = {};
     function openInvoiceModal(roomId) {
       const monthStr = document.getElementById('billingMonthSelector').value;
@@ -1005,7 +1004,8 @@
         roomPrice: rentData.rent, days: rentData.days, totalDays: rentData.totalDays,
         prevMeter: r.lastMeter, curMeter: curMeter, units: units, elecCost: elecCost, waterCost: waterCost, commonCost: appData.settings.rateCommon, total: total,
         bankName: appData.settings.bankName, bankAcc: appData.settings.bankAccNumber, bankOwner: appData.settings.bankAccName,
-        elecPercent: r.elecPercent||100, waterPercent: r.waterPercent||100
+        elecPercent: r.elecPercent||100, waterPercent: r.waterPercent||100,
+        qrCodeUrl: appData.settings.bankQrCodeUrl || "" // 🔴 ดึงลิงก์ QR Code มาเตรียมไว้
       };
 
       document.getElementById('invDormName').textContent = currentInvoiceData.dormName;
@@ -1054,9 +1054,17 @@
       let eTxt = d.elecPercent !== 100 ? `2. ค่าไฟ (${d.units} น. คิด ${d.elecPercent}%): ${d.elecCost.toLocaleString()} บ.` : `2. ค่าไฟ (${d.units} หน่วย): ${d.elecCost.toLocaleString()} บ.`;
       let wTxt = d.waterPercent !== 100 ? `3. ค่าน้ำ (คิด ${d.waterPercent}%): ${d.waterCost.toLocaleString()} บ.` : `3. ค่าน้ำ: ${d.waterCost.toLocaleString()} บ.`;
 
-      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${rTxt}\n${eTxt}\n${wTxt}\n4. ส่วนกลาง: ${d.commonCost.toLocaleString()} บ.\n━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
+      // 🔴 เพิ่มข้อความและลิงก์ QR Code หากมีการตั้งค่าไว้
+      let qrText = "";
+      if (d.qrCodeUrl) {
+        qrText = `\n📱 สแกน QR Code (คลิกรูปลิงก์ด้านล่าง):\n${d.qrCodeUrl}`;
+      }
+
+      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${rTxt}\n${eTxt}\n${wTxt}\n4. ส่วนกลาง: ${d.commonCost.toLocaleString()} บ.\n━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}${qrText}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
+      
       navigator.clipboard.writeText(text).then(() => alert("คัดลอกข้อความสำเร็จ นำไปวางส่งใน LINE ได้เลย!")).catch(() => alert("คัดลอกไม่สำเร็จ"));
     }
+    
 
     function saveSettings(e) { 
       e.preventDefault(); 
