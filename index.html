@@ -600,6 +600,41 @@
       }
     }
 
+    // 🟢 ================= เพิ่มฟังก์ชัน Invert Image สำหรับ OCR ================= 🟢
+    function preprocessMeterImage(file, callback) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = e => {
+        const img = new Image(); 
+        img.src = e.target.result;
+        img.onload = () => {
+          const cvs = document.createElement('canvas');
+          // ย่อขนาดลงหน่อยเพื่อให้ประมวลผลเร็วขึ้น
+          let scale = 1; 
+          if(img.width > 800) scale = 800 / img.width;
+          cvs.width = img.width * scale; 
+          cvs.height = img.height * scale;
+          
+          const ctx = cvs.getContext('2d');
+          ctx.drawImage(img, 0, 0, cvs.width, cvs.height);
+          
+          let imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+          let data = imgData.data;
+          
+          // สลับสี (Invert Colors) สีดำกลายเป็นขาว สีขาวกลายเป็นดำ 
+          // เพื่อให้เลขสีขาวบนพื้นดำ กลายเป็น "เลขสีดำบนพื้นขาว" ซึ่ง AI Tesseract อ่านได้ดีที่สุด
+          for (let i = 0; i < data.length; i += 4) {
+            data[i] = 255 - data[i];       // red
+            data[i+1] = 255 - data[i+1];   // green
+            data[i+2] = 255 - data[i+2];   // blue
+          }
+          ctx.putImageData(imgData, 0, 0);
+          callback(cvs.toDataURL('image/jpeg', 0.8));
+        }
+      }
+    }
+    // =========================================================================
+
     function uploadToImgBB(base64Data, onSuccess, onError) {
       const base64String = base64Data.split(',')[1]; 
       const formData = new FormData();
@@ -636,7 +671,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลดโลโก้ไม่สำเร็จ");
+            alert("อัปโหลดโลโก้ไม่สำเร็จ กรุณาลองใหม่");
             updateHeaderAndSettings();
             document.getElementById('logo-loading').classList.add('hidden');
             document.getElementById('logo-loading').classList.remove('flex');
@@ -671,7 +706,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลด QR Code ไม่สำเร็จ");
+            alert("อัปโหลด QR Code ไม่สำเร็จ กรุณาลองใหม่");
             updateHeaderAndSettings();
             document.getElementById('qrcode-loading').classList.add('hidden');
             document.getElementById('qrcode-loading').classList.remove('flex');
@@ -739,6 +774,7 @@
       }
     }
 
+    // 🟢 ================= อัปเดตตรรกะ AI ให้ลบจุดทศนิยมอัตโนมัติ ================= 🟢
     function uploadCloudMeter(event, roomId) {
       const file = event.target.files[0];
       if (!file) return;
@@ -752,13 +788,17 @@
         </div>
       `;
 
+      // 1. กระบวนการย่อขนาดและอัปโหลดรูปภาพขึ้น Cloud (เก็บภาพสีปกติ)
       const uploadProcess = new Promise((resolve, reject) => {
         compressImage(file, base64 => uploadToImgBB(base64, resolve, reject));
       });
 
-      const ocrProcess = Tesseract.recognize(file, 'eng')
-        .then(res => res.data.text)
-        .catch(err => "");
+      // 2. กระบวนการแปลงสีภาพ (Invert) ให้ AI สแกนเฉพาะสีดำ
+      const ocrProcess = new Promise((resolve) => {
+         preprocessMeterImage(file, invertedBase64 => {
+             Tesseract.recognize(invertedBase64, 'eng').then(res => resolve(res.data.text)).catch(err => resolve(""));
+         });
+      });
 
       Promise.allSettled([uploadProcess, ocrProcess]).then(results => {
         const uploadRes = results[0];
@@ -775,10 +815,41 @@
         }
 
         if (ocrRes.status === 'fulfilled' && ocrRes.value) {
-          const matches = ocrRes.value.match(/\d+/g);
+          const r = appData.rooms.find(x => x.id === roomId);
+          const prevMeter = r.lastMeter || 0; // นำเลขเดือนก่อนมาเป็นตัวอ้างอิง
+          
+          let matches = ocrRes.value.match(/\d{3,6}/g);
           if (matches && matches.length > 0) {
-            candidateNumber = matches.find(m => m.length >= 3 && m.length <= 6) || matches[0];
-            appData.monthlyRecords[monthStr][roomId].curMeter = parseFloat(candidateNumber) || 0;
+            let bestCandidate = null;
+            let minDiff = Infinity;
+            
+            for (let m of matches) {
+               let num = parseInt(m);
+               
+               // ทฤษฎีที่ 1: AI อ่านได้ตรงๆ ไม่ติดทศนิยม (ตัวเลขใกล้เคียงกับของเก่ามากที่สุด)
+               let diff1 = num - prevMeter;
+               if (diff1 >= 0 && diff1 < minDiff) { 
+                  minDiff = diff1; 
+                  bestCandidate = num; 
+               }
+
+               // ทฤษฎีที่ 2: AI อ่านติดทศนิยมช่องสีขาวมาด้วย (เช่น 48738 แทนที่จะเป็น 4873) ให้หาร 10 แล้วปัดเศษทิ้ง
+               let numDiv10 = Math.floor(num / 10);
+               let diff2 = numDiv10 - prevMeter;
+               if (diff2 >= 0 && diff2 < minDiff && m.length >= 4) { 
+                  minDiff = diff2; 
+                  bestCandidate = numDiv10; 
+               }
+            }
+
+            // ถ้าหาตัวเลขที่มีความต่างจากเดือนที่แล้วไม่เกิน 3000 หน่วย แสดงว่าน่าจะใช่เลขมิเตอร์
+            if (bestCandidate !== null && minDiff <= 3000) {
+               candidateNumber = bestCandidate;
+            } else {
+               candidateNumber = matches[0]; // fallback
+            }
+            
+            appData.monthlyRecords[monthStr][roomId].curMeter = candidateNumber;
             ocrFound = true;
           }
         }
@@ -786,7 +857,7 @@
         saveToCloud().then(() => {
           renderMetersTable();
           if (ocrFound) {
-            alert(`🔍 AI สแกนตัวเลขจากภาพได้: ${candidateNumber}\n\n👉 ระบบนำตัวเลขใส่ในช่องให้แล้ว กรุณาตรวจสอบความถูกต้องอีกครั้ง หากพบว่า AI อ่านผิด คุณสามารถคลิกแก้ไขตัวเลขในช่องได้เลยครับ`);
+            alert(`🔍 AI สแกนตัวเลขจากภาพได้: ${candidateNumber}\n\n👉 ระบบกรองพื้นสีดำและพยายามตัดจุดทศนิยมอัตโนมัติแล้ว กรุณาตรวจสอบอีกครั้ง หากพบว่า AI อ่านผิด คุณสามารถคลิกแก้ตัวเลขในช่องได้เลยครับ`);
           } else {
             alert(`⚠️ AI ไม่สามารถอ่านตัวเลขจากภาพนี้ได้ (อาจจะเบลอหรือมีแสงสะท้อน)\n👉 กรุณากรอกตัวเลขมิเตอร์ด้วยตนเองในช่องครับ`);
           }
@@ -1216,7 +1287,6 @@
       const curMonthData = appData.monthlyRecords[monthStr];
 
       appData.rooms.forEach(r => {
-        // แก้ไขตรงนี้: ให้โชว์ทุกห้องที่มีสถานะ "มีผู้เช่า" ไม่ว่าจะเข้าวันไหนก็ตาม
         if(r.status !== 'มีผู้เช่า') return;
         
         const rec = curMonthData[r.id] || { curMeter: r.lastMeter };
