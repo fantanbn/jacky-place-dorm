@@ -5,16 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบจัดการหอพัก - Jacky Place (Cloud Version)</title>
   
-  <!-- CSS & UI Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  
-  <!-- Chart.js สำหรับสร้างกราฟ Dashboard -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
@@ -41,7 +37,6 @@
 
   <div id="batchPrintContainer" class="hidden"></div>
 
-  <!-- ================= หน้าจอ LOGIN ================= -->
   <div id="loginScreen" class="fixed inset-0 bg-indigo-900 z-50 flex items-center justify-center p-4">
     <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
       <div id="loginLogoContainer" class="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-indigo-100 flex items-center justify-center bg-indigo-50 overflow-hidden shadow-inner">
@@ -64,7 +59,6 @@
     <p class="font-bold text-slate-700" id="loadingText">กำลังซิงค์ข้อมูลกับคลาวด์...</p>
   </div>
 
-  <!-- ================= ส่วนของแอปพลิเคชัน ================= -->
   <div id="mainApp" style="display: none;">
     <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-30 no-print">
       <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
@@ -142,7 +136,7 @@
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
-                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">ค่าห้อง</th><th class="px-4 py-3">สถานะ</th><th class="px-4 py-3">ผู้เช่า (ชื่อเล่น)</th><th class="px-4 py-3">เบอร์โทร</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
+                <tr><th class="px-4 py-3">ห้อง</th><th class="px-4 py-3">ค่าห้อง</th><th class="px-4 py-3">ค่าน้ำเหมา</th><th class="px-4 py-3">สถานะ</th><th class="px-4 py-3">ผู้เช่า (ชื่อเล่น)</th><th class="px-4 py-3">เบอร์โทร</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
               </thead>
               <tbody id="tenantTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
@@ -277,7 +271,7 @@
             <div><label class="block text-sm mb-1">เลขที่บัญชี</label><input type="text" id="setBankAccNumber" class="w-full p-2 border rounded" required></div>
             <div class="grid grid-cols-3 gap-4">
               <div><label class="block text-sm mb-1">ค่าไฟ (บ./น.)</label><input type="number" step="0.5" id="setRateElectric" class="w-full p-2 border rounded" required></div>
-              <div><label class="block text-sm mb-1">ค่าน้ำ (เหมา)</label><input type="number" id="setRateWater" class="w-full p-2 border rounded" required></div>
+              <div><label class="block text-sm mb-1">ค่าน้ำ (เหมาตั้งต้น)</label><input type="number" id="setRateWater" class="w-full p-2 border rounded" required></div>
               <div><label class="block text-sm mb-1">ส่วนกลาง (บ.)</label><input type="number" id="setRateCommon" class="w-full p-2 border rounded" required></div>
             </div>
 
@@ -352,13 +346,13 @@
           <div class="grid grid-cols-3 gap-4 mb-4">
             <div><label class="text-xs font-semibold mb-1 block">ราคาห้องเต็มเดือน</label><input type="number" id="editRoomPrice" class="w-full border p-2 rounded text-sm" required></div>
             <div><label class="text-xs font-semibold mb-1 block">สถานะ</label><select id="editRoomStatus" class="w-full border p-2 rounded text-sm"><option value="มีผู้เช่า">มีผู้เช่า</option><option value="ห้องว่าง">ห้องว่าง</option></select></div>
-            <div><label class="text-xs font-semibold mb-1 block text-amber-600">มิเตอร์ไฟเริ่มต้น</label><input type="number" id="editLastMeter" class="w-full border border-amber-300 p-2 rounded text-sm bg-amber-50" placeholder="0" required></div>
+            <div><label class="text-xs font-semibold mb-1 block text-amber-600">มิเตอร์ไฟเริ่มต้น (ก่อนเข้าอยู่)</label><input type="number" id="editLastMeter" class="w-full border border-amber-300 p-2 rounded text-sm bg-amber-50" placeholder="0" required></div>
           </div>
 
           <div class="grid grid-cols-2 gap-4 mb-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-            <div class="col-span-2"><h4 class="text-xs font-bold text-indigo-900">สัดส่วนค่าน้ำ-ไฟ เฉพาะห้องนี้</h4></div>
-            <div><label class="text-xs mb-1 block">คิดค่าไฟ (%)</label><input type="number" id="editElecPercent" class="w-full border p-2 rounded text-sm" placeholder="100"></div>
-            <div><label class="text-xs mb-1 block">คิดค่าน้ำ (%)</label><input type="number" id="editWaterPercent" class="w-full border p-2 rounded text-sm" placeholder="100"></div>
+            <!-- ค่าน้ำประปาแยกอิสระรายห้อง -->
+            <div><label class="text-xs font-semibold mb-1 block text-blue-700">ค่าน้ำประปา (บาท/เดือน)</label><input type="number" id="editWaterPrice" class="w-full border border-blue-300 p-2 rounded text-sm bg-blue-50" placeholder="อิงตามค่าตั้งต้น"></div>
+            <div><label class="text-xs font-semibold mb-1 block">สัดส่วนเก็บค่าไฟ (%)</label><input type="number" id="editElecPercent" class="w-full border p-2 rounded text-sm" placeholder="100"></div>
           </div>
           
           <div class="grid grid-cols-2 gap-4 mb-4 bg-slate-50 p-3 rounded border">
@@ -366,7 +360,14 @@
             <div><label class="text-xs mb-1 block font-bold text-rose-600">วันที่แจ้งย้ายออก</label><input type="date" id="editMoveOut" class="w-full border p-2 rounded text-sm bg-rose-50"></div>
           </div>
 
-          <div class="grid grid-cols-3 gap-4 mb-4">
+          <!-- เครื่องใช้ไฟฟ้าภายในห้อง -->
+          <div class="mb-4 bg-slate-50 p-3 rounded border">
+             <h4 class="text-xs font-bold text-slate-700 mb-2"><i class="fa-solid fa-plug text-indigo-500"></i> รายการเครื่องใช้ไฟฟ้าภายในห้อง</h4>
+             <div id="applianceListContainer" class="space-y-1 mb-2"></div>
+             <button type="button" onclick="addApplianceToModal()" class="w-full border border-dashed border-indigo-300 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded text-[10px] py-1 transition"><i class="fa-solid fa-plus"></i> เพิ่มเครื่องใช้ไฟฟ้า</button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4 mb-4 border-t pt-4">
             <div class="col-span-2"><label class="text-xs mb-1 block">ชื่อ-นามสกุล</label><input type="text" id="editTenantName" class="w-full border p-2 rounded text-sm"></div>
             <div class="col-span-1"><label class="text-xs mb-1 block">ชื่อเล่น</label><input type="text" id="editTenantNickname" class="w-full border p-2 rounded text-sm"></div>
           </div>
@@ -503,6 +504,9 @@
 
     let appData = {};
     const DORM_DOC_ID = "JackyPlace_MainData";
+    
+    // ตั้งค่า Default เดือนเป็นกันยายน 2569 (2026-09) เพื่อให้สอดคล้องกับข้อมูลจำลอง
+    const SYSTEM_DEFAULT_MONTH = "2026-09";
 
     window.addEventListener('DOMContentLoaded', () => {
        const savedLogo = localStorage.getItem('dormLogoUrl');
@@ -550,7 +554,57 @@
           appData = doc.data();
         } else {
           appData = createDefaultData();
-          await db.collection("DormManager").doc(DORM_DOC_ID).set(appData);
+        }
+
+        // 🟢 [AUTO-MIGRATION] นำเข้าข้อมูลเดือน ก.ย. 69 เข้าสู่ระบบหากยังว่างอยู่
+        let needsMigration = false;
+        if (appData.rooms[0] && !appData.rooms[0].tenant.name) {
+           needsMigration = true;
+           const imgData = {
+              "1": { name: "คุณเดชาวดี วาจาเอื้อ", nick: "บิ๊ก", rent: 3800, water: 200, prev: 7124, cur: 7420, fan: "ตั้งพื้น", fridge: "Hier" },
+              "2": { name: "คุณศศิธร จันทาทุม", nick: "จุ๊บ", rent: 3500, water: 200, prev: 1783, cur: 1989, fan: "ตั้งพื้น", fridge: "Hier" },
+              "3": { name: "คุณธมลวรรณ กาดนอก", nick: "นุ้ย", rent: 3800, water: 200, prev: 9269, cur: 9406, fan: "ตั้งพื้น", fridge: "Hitachi" },
+              "4": { name: "คุณกัญญณัฐ ดีดี", nick: "หนิง", rent: 3600, water: 200, prev: 9505, cur: 9632, fan: "ตั้งพื้น", fridge: "Hitachi" },
+              "5": { name: "คุณอภิสิทธิ์ อาสนะ", nick: "ฟรุ้ค", rent: 3700, water: 200, prev: 9166, cur: 9214, fan: "ตั้งพื้น", fridge: "Mitsu" },
+              "6": { name: "คุณอรนิภา ภูงามดี", nick: "แพนด้า", rent: 3800, water: 200, prev: 2028, cur: 2188, fan: "ตั้งพื้น", fridge: "Hier ดำ" },
+              "7": { name: "คุณสุภัสสร จันใด", nick: "นุ่น", rent: 3600, water: 200, prev: 8729, cur: 8790, fan: "ตั้งพื้น", fridge: "Mitsu" },
+              "8": { name: "คุณกัญยรัตน์ ลมดา", nick: "ใบตอง", rent: 3800, water: 200, prev: 6521, cur: 6606, fan: "ตั้งพื้น", fridge: "Sharp" },
+              "9": { name: "คุณณัฐวุฒิ การโสภา", nick: "โอ๊ต", rent: 3700, water: 200, prev: 7662, cur: 7985, fan: "ตั้งพื้น", fridge: "Sharp" },
+              "10": { name: "คุณกนิษฐา ศรีสมบัติ", nick: "แต๋ม", rent: 3600, water: 200, prev: 6060, cur: 6120, fan: "ตั้งพื้น", fridge: "Sumsung" },
+              "11": { name: "คุณพรรณเวษา โพคาวัตร", nick: "นุก", rent: 3800, water: 200, prev: 6389, cur: 6446, fan: "ตั้งพื้น", fridge: "Hitachi" },
+              "12": { name: "คุณธาราวรินทร์ แสนแก้ว", nick: "น้ำเมย", rent: 3800, water: 200, prev: 7177, cur: 7236, fan: "ตั้งพื้น", fridge: "Hier" },
+              "13": { name: "คุณภควัฒน์ ประกอบแสง", nick: "ดล", rent: 3800, water: 200, prev: 5514, cur: 5599, fan: "ติดผนัง", fridge: "Sharp" },
+              "14": { name: "คุณพีรพัฒน์ ภูมิเพชร", nick: "พีท", rent: 3800, water: 200, prev: 7647, cur: 7679, fan: "ตั้งพื้น", fridge: "Hier" },
+              "15": { name: "คุณอภิวิชญ์ ทองกุล", nick: "โดม่อน", rent: 3800, water: 200, prev: 6624, cur: 6681, fan: "ตั้งพื้น", fridge: "Sumsung" },
+              "16": { name: "คุณธีรภัทรภรณ์ ตุลาโชติ", nick: "ฟรุ๊ค", rent: 3800, water: 150, prev: 6305, cur: 6519, fan: "ตั้งพื้น", fridge: "Hier" }
+           };
+           appData.rooms.forEach(r => {
+              if (imgData[r.id]) {
+                 r.tenant.name = imgData[r.id].name;
+                 r.tenant.nickname = imgData[r.id].nick;
+                 r.price = imgData[r.id].rent;
+                 r.waterPrice = imgData[r.id].water;
+                 r.lastMeter = imgData[r.id].prev;
+                 r.status = "มีผู้เช่า";
+                 r.tenant.moveIn = "2026-09-01";
+                 r.appliances = [
+                    { type: 'พัดลม', brand: imgData[r.id].fan },
+                    { type: 'ตู้เย็น', brand: imgData[r.id].fridge }
+                 ];
+                 if (!appData.monthlyRecords[SYSTEM_DEFAULT_MONTH]) appData.monthlyRecords[SYSTEM_DEFAULT_MONTH] = {};
+                 appData.monthlyRecords[SYSTEM_DEFAULT_MONTH][r.id] = { curMeter: imgData[r.id].cur, paid: false };
+              }
+           });
+           if (!appData.monthlyExpenses[SYSTEM_DEFAULT_MONTH]) {
+              appData.monthlyExpenses[SYSTEM_DEFAULT_MONTH] = {
+                 items: [
+                    { label: 'ค่าไฟฟ้า (ตามบิลการไฟฟ้า)', amount: 10584 },
+                    { label: 'ค่าแม่บ้าน', amount: 5000 },
+                    { label: 'ค่าอินเทอร์เน็ต (Net True)', amount: 500 },
+                    { label: 'จ่ายอื่นๆเพิ่มเติม', amount: 2652 }
+                 ]
+              };
+           }
         }
         
         if (!appData.monthlyExpenses) appData.monthlyExpenses = {};
@@ -558,13 +612,15 @@
         if (!appData.settings.dormLogoUrl) appData.settings.dormLogoUrl = "";
         appData.rooms.forEach(r => {
           if (!r.tenant.docs) r.tenant.docs = { contract: "", idcard: "", house: "" };
+          if (!r.appliances) r.appliances = [];
         });
 
-        const now = new Date();
-        const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        document.getElementById('meterBillingMonth').value = curMonthStr;
-        document.getElementById('billingMonthSelector').value = curMonthStr;
-        document.getElementById('summaryMonthSelector').value = curMonthStr;
+        if (needsMigration) await db.collection("DormManager").doc(DORM_DOC_ID).set(appData);
+
+        // กำหนดเดือน Default
+        document.getElementById('meterBillingMonth').value = SYSTEM_DEFAULT_MONTH;
+        document.getElementById('billingMonthSelector').value = SYSTEM_DEFAULT_MONTH;
+        document.getElementById('summaryMonthSelector').value = SYSTEM_DEFAULT_MONTH;
         
         updateHeaderAndSettings(); 
         renderDashboard(); 
@@ -600,7 +656,6 @@
       }
     }
 
-    // 🟢 ================= เพิ่มฟังก์ชัน Invert Image สำหรับ OCR ================= 🟢
     function preprocessMeterImage(file, callback) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -609,31 +664,22 @@
         img.src = e.target.result;
         img.onload = () => {
           const cvs = document.createElement('canvas');
-          // ย่อขนาดลงหน่อยเพื่อให้ประมวลผลเร็วขึ้น
-          let scale = 1; 
-          if(img.width > 800) scale = 800 / img.width;
-          cvs.width = img.width * scale; 
-          cvs.height = img.height * scale;
-          
+          let scale = 1; if(img.width > 800) scale = 800 / img.width;
+          cvs.width = img.width * scale; cvs.height = img.height * scale;
           const ctx = cvs.getContext('2d');
           ctx.drawImage(img, 0, 0, cvs.width, cvs.height);
-          
           let imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
           let data = imgData.data;
-          
-          // สลับสี (Invert Colors) สีดำกลายเป็นขาว สีขาวกลายเป็นดำ 
-          // เพื่อให้เลขสีขาวบนพื้นดำ กลายเป็น "เลขสีดำบนพื้นขาว" ซึ่ง AI Tesseract อ่านได้ดีที่สุด
           for (let i = 0; i < data.length; i += 4) {
-            data[i] = 255 - data[i];       // red
-            data[i+1] = 255 - data[i+1];   // green
-            data[i+2] = 255 - data[i+2];   // blue
+            data[i] = 255 - data[i];       
+            data[i+1] = 255 - data[i+1];   
+            data[i+2] = 255 - data[i+2];   
           }
           ctx.putImageData(imgData, 0, 0);
           callback(cvs.toDataURL('image/jpeg', 0.8));
         }
       }
     }
-    // =========================================================================
 
     function uploadToImgBB(base64Data, onSuccess, onError) {
       const base64String = base64Data.split(',')[1]; 
@@ -671,7 +717,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลดโลโก้ไม่สำเร็จ กรุณาลองใหม่");
+            alert("อัปโหลดโลโก้ไม่สำเร็จ");
             updateHeaderAndSettings();
             document.getElementById('logo-loading').classList.add('hidden');
             document.getElementById('logo-loading').classList.remove('flex');
@@ -706,7 +752,7 @@
             });
           }, 
           (err) => {
-            alert("อัปโหลด QR Code ไม่สำเร็จ กรุณาลองใหม่");
+            alert("อัปโหลด QR Code ไม่สำเร็จ");
             updateHeaderAndSettings();
             document.getElementById('qrcode-loading').classList.add('hidden');
             document.getElementById('qrcode-loading').classList.remove('flex');
@@ -774,7 +820,6 @@
       }
     }
 
-    // 🟢 ================= อัปเดตตรรกะ AI ให้ลบจุดทศนิยมอัตโนมัติ ================= 🟢
     function uploadCloudMeter(event, roomId) {
       const file = event.target.files[0];
       if (!file) return;
@@ -788,12 +833,10 @@
         </div>
       `;
 
-      // 1. กระบวนการย่อขนาดและอัปโหลดรูปภาพขึ้น Cloud (เก็บภาพสีปกติ)
       const uploadProcess = new Promise((resolve, reject) => {
         compressImage(file, base64 => uploadToImgBB(base64, resolve, reject));
       });
 
-      // 2. กระบวนการแปลงสีภาพ (Invert) ให้ AI สแกนเฉพาะสีดำ
       const ocrProcess = new Promise((resolve) => {
          preprocessMeterImage(file, invertedBase64 => {
              Tesseract.recognize(invertedBase64, 'eng').then(res => resolve(res.data.text)).catch(err => resolve(""));
@@ -816,7 +859,7 @@
 
         if (ocrRes.status === 'fulfilled' && ocrRes.value) {
           const r = appData.rooms.find(x => x.id === roomId);
-          const prevMeter = r.lastMeter || 0; // นำเลขเดือนก่อนมาเป็นตัวอ้างอิง
+          const prevMeter = r.lastMeter || 0; 
           
           let matches = ocrRes.value.match(/\d{3,6}/g);
           if (matches && matches.length > 0) {
@@ -825,28 +868,18 @@
             
             for (let m of matches) {
                let num = parseInt(m);
-               
-               // ทฤษฎีที่ 1: AI อ่านได้ตรงๆ ไม่ติดทศนิยม (ตัวเลขใกล้เคียงกับของเก่ามากที่สุด)
                let diff1 = num - prevMeter;
-               if (diff1 >= 0 && diff1 < minDiff) { 
-                  minDiff = diff1; 
-                  bestCandidate = num; 
-               }
+               if (diff1 >= 0 && diff1 < minDiff) { minDiff = diff1; bestCandidate = num; }
 
-               // ทฤษฎีที่ 2: AI อ่านติดทศนิยมช่องสีขาวมาด้วย (เช่น 48738 แทนที่จะเป็น 4873) ให้หาร 10 แล้วปัดเศษทิ้ง
                let numDiv10 = Math.floor(num / 10);
                let diff2 = numDiv10 - prevMeter;
-               if (diff2 >= 0 && diff2 < minDiff && m.length >= 4) { 
-                  minDiff = diff2; 
-                  bestCandidate = numDiv10; 
-               }
+               if (diff2 >= 0 && diff2 < minDiff && m.length >= 4) { minDiff = diff2; bestCandidate = numDiv10; }
             }
 
-            // ถ้าหาตัวเลขที่มีความต่างจากเดือนที่แล้วไม่เกิน 3000 หน่วย แสดงว่าน่าจะใช่เลขมิเตอร์
             if (bestCandidate !== null && minDiff <= 3000) {
                candidateNumber = bestCandidate;
             } else {
-               candidateNumber = matches[0]; // fallback
+               candidateNumber = matches[0]; 
             }
             
             appData.monthlyRecords[monthStr][roomId].curMeter = candidateNumber;
@@ -938,9 +971,9 @@
       if (!appData.monthlyExpenses[monthStr]) {
         appData.monthlyExpenses[monthStr] = {
           items: [
-            { label: 'ค่าไฟฟ้าหอพัก', amount: 0 },
-            { label: 'ค่าน้ำหอพัก', amount: 0 },
-            { label: 'ค่าซ่อมบำรุง/แม่บ้าน', amount: 0 }
+            { label: 'ค่าไฟฟ้า (ตามบิลการไฟฟ้า)', amount: 0 },
+            { label: 'ค่าแม่บ้าน', amount: 0 },
+            { label: 'ค่าอินเทอร์เน็ต (Net True)', amount: 0 }
           ]
         };
       } else if (!appData.monthlyExpenses[monthStr].items) {
@@ -1023,7 +1056,7 @@
         settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "" },
         rooms: Array.from({length: 16}, (_, i) => {
           let n = String(i + 1); 
-          return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0 };
+          return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [] };
         }),
         monthlyRecords: {}, monthlyExpenses: {}
       };
@@ -1136,13 +1169,11 @@
           const rentData = calculateRoomRent(r, mStr);
           if (rentData.days > 0) {
             const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100) / 100);
-            const waterCost = appData.settings.rateWater * ((r.waterPercent||100) / 100);
+            const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
             
             let otherTotal = 0;
             if (rec.otherItems) {
                otherTotal = rec.otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
-            } else if (rec.otherCost) {
-               otherTotal = parseFloat(rec.otherCost) || 0;
             }
 
             totalBilled += rentData.rent + elecCost + waterCost + appData.settings.rateCommon + otherTotal;
@@ -1218,15 +1249,48 @@
       appData.rooms.forEach(r => {
         let fn = '-';
         if (r.tenant.name || r.tenant.nickname) fn = (r.tenant.name||'') + (r.tenant.nickname ? ` (${r.tenant.nickname})` : '');
+        let wp = r.waterPrice !== undefined ? r.waterPrice : 'ตามส่วนกลาง';
+        
+        let appText = '';
+        if (r.appliances && r.appliances.length > 0) {
+           appText = `<div class="text-[9px] text-slate-500 mt-1">` + r.appliances.map(a => `${a.type} ${a.brand}`).join(', ') + `</div>`;
+        }
+
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
             <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${r.price.toLocaleString()}</td>
+            <td class="px-4 py-2 text-blue-700">${wp}</td>
             <td class="px-4 py-2"><span class="px-2 text-xs rounded-full ${r.status==='มีผู้เช่า'?'bg-emerald-100':'bg-slate-200'}">${r.status}</span></td>
-            <td class="px-4 py-2">${fn}</td><td class="px-4 py-2">${r.tenant.phone||'-'}</td>
+            <td class="px-4 py-2 leading-tight">${fn} ${appText}</td><td class="px-4 py-2">${r.tenant.phone||'-'}</td>
             <td class="px-4 py-2 text-center"><button onclick="openEditRoomModal('${r.id}')" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded text-xs">แก้ไข/แนบไฟล์</button></td>
           </tr>
         `;
       });
+    }
+
+    // 🟢 ระบบแสดงเครื่องใช้ไฟฟ้าในหน้าต่าง
+    let currentModalAppliances = [];
+    function renderApplianceList() {
+       const container = document.getElementById('applianceListContainer');
+       if (currentModalAppliances.length === 0) {
+          container.innerHTML = `<p class="text-[10px] text-slate-400 text-center italic">ยังไม่มีข้อมูลเครื่องใช้ไฟฟ้า</p>`;
+          return;
+       }
+       container.innerHTML = currentModalAppliances.map((app, idx) => `
+          <div class="flex gap-2 items-center mb-1">
+             <input type="text" placeholder="ประเภท (เช่น ตู้เย็น, แอร์)" value="${app.type || ''}" onchange="currentModalAppliances[${idx}].type = this.value" class="w-1/2 border p-1 rounded text-[11px] bg-white">
+             <input type="text" placeholder="ยี่ห้อ / รุ่น / หมายเหตุ" value="${app.brand || ''}" onchange="currentModalAppliances[${idx}].brand = this.value" class="w-1/2 border p-1 rounded text-[11px] bg-white">
+             <button type="button" onclick="removeApplianceFromModal(${idx})" class="text-rose-500 hover:text-rose-700 px-1"><i class="fa-solid fa-trash text-xs"></i></button>
+          </div>
+       `).join('');
+    }
+    function addApplianceToModal() {
+       currentModalAppliances.push({type: '', brand: ''});
+       renderApplianceList();
+    }
+    function removeApplianceFromModal(idx) {
+       currentModalAppliances.splice(idx, 1);
+       renderApplianceList();
     }
 
     function openEditRoomModal(id) { 
@@ -1236,8 +1300,8 @@
       document.getElementById('editRoomPrice').value = r.price;
       document.getElementById('editRoomStatus').value = r.status;
       document.getElementById('editLastMeter').value = r.lastMeter !== undefined ? r.lastMeter : 0;
+      document.getElementById('editWaterPrice').value = r.waterPrice !== undefined ? r.waterPrice : '';
       document.getElementById('editElecPercent').value = r.elecPercent !== undefined ? r.elecPercent : 100;
-      document.getElementById('editWaterPercent').value = r.waterPercent !== undefined ? r.waterPercent : 100;
       document.getElementById('editTenantName').value = r.tenant.name || '';
       document.getElementById('editTenantNickname').value = r.tenant.nickname || '';
       document.getElementById('editTenantPhone').value = r.tenant.phone || '';
@@ -1248,6 +1312,9 @@
       document.getElementById('editCarPlate').value = r.tenant.carPlate || '';
       document.getElementById('editEmergencyContact').value = r.tenant.emergency || '';
       
+      currentModalAppliances = JSON.parse(JSON.stringify(r.appliances || []));
+      renderApplianceList();
+
       const docs = r.tenant.docs || {};
       renderDocPreview(docs.contract, 'contract');
       renderDocPreview(docs.idcard, 'idcard');
@@ -1263,8 +1330,11 @@
       r.price = parseFloat(document.getElementById('editRoomPrice').value) || 0;
       r.status = document.getElementById('editRoomStatus').value;
       r.lastMeter = parseFloat(document.getElementById('editLastMeter').value) || 0;
+      
+      let wp = document.getElementById('editWaterPrice').value;
+      r.waterPrice = wp !== '' ? parseFloat(wp) : undefined;
+      
       r.elecPercent = parseFloat(document.getElementById('editElecPercent').value) || 100;
-      r.waterPercent = parseFloat(document.getElementById('editWaterPercent').value) || 100;
       r.tenant.name = document.getElementById('editTenantName').value;
       r.tenant.nickname = document.getElementById('editTenantNickname').value;
       r.tenant.phone = document.getElementById('editTenantPhone').value;
@@ -1275,6 +1345,8 @@
       r.tenant.carPlate = document.getElementById('editCarPlate').value;
       r.tenant.emergency = document.getElementById('editEmergencyContact').value;
       
+      r.appliances = currentModalAppliances.filter(a => a.type.trim() !== '' || a.brand.trim() !== '');
+
       saveToCloud().then(() => {
         closeModal('tenantModal'); renderRoomsTable(); renderDashboard();
       });
@@ -1347,12 +1419,9 @@
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
         const units = Math.max(0, curMeter - r.lastMeter);
         const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100)/100);
-        const waterCost = appData.settings.rateWater * ((r.waterPercent||100)/100);
+        const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
         
         let otherItems = record.otherItems || [];
-        if (record.otherCost && otherItems.length === 0) {
-           otherItems.push({ label: record.otherLabel || '', cost: parseFloat(record.otherCost) || 0 });
-        }
         let otherTotal = otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
         
         const total = rentData.rent + elecCost + waterCost + appData.settings.rateCommon + otherTotal;
@@ -1360,7 +1429,7 @@
 
         let rDisp = rentData.rent.toLocaleString(); if(rentData.days < rentData.totalDays) rDisp += ` <br><span class="text-[10px] text-rose-600">(${rentData.days} วัน)</span>`;
         let eDisp = `${elecCost.toLocaleString()}`; if((r.elecPercent||100)!==100) eDisp += ` <span class="text-[10px] text-rose-500">(${r.elecPercent}%)</span>`;
-        let wDisp = `${waterCost.toLocaleString()}`; if((r.waterPercent||100)!==100) wDisp += ` <span class="text-[10px] text-rose-500">(${r.waterPercent}%)</span>`;
+        let wDisp = `${waterCost.toLocaleString()}`;
 
         let slipHtml = `
           <label class="cursor-pointer bg-white border border-indigo-200 px-2 py-1 rounded text-[10px] hover:bg-indigo-50 font-semibold inline-block w-full text-center text-indigo-600 transition">
@@ -1396,7 +1465,7 @@
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
             <td class="px-3 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-3 py-2">${r.tenant.name || '-'}</td>
-            <td class="px-3 py-2">${rDisp}</td><td class="px-3 py-2">${eDisp}</td><td class="px-3 py-2">${wDisp}</td><td class="px-3 py-2">${appData.settings.rateCommon}</td>
+            <td class="px-3 py-2">${rDisp}</td><td class="px-3 py-2">${eDisp}</td><td class="px-3 py-2 text-blue-700">${wDisp}</td><td class="px-3 py-2">${appData.settings.rateCommon}</td>
             <td class="px-3 py-2 align-middle">${otherUI}</td>
             <td class="px-3 py-2 font-bold text-indigo-700 text-base">${total.toLocaleString()}</td>
             <td class="px-3 py-2 align-middle w-24">${slipHtml}</td>
@@ -1426,15 +1495,14 @@
             const rec = mData[r.id] || {};
             const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
             const units = Math.max(0, curMeter - r.lastMeter);
+            const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
             
             let otherTotal = 0;
             if (rec.otherItems) {
                otherTotal = rec.otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
-            } else if (rec.otherCost) {
-               otherTotal = parseFloat(rec.otherCost) || 0;
             }
 
-            const bill = rentData.rent + ((units * appData.settings.rateElectric)*((r.elecPercent||100)/100)) + (appData.settings.rateWater*((r.waterPercent||100)/100)) + appData.settings.rateCommon + otherTotal;
+            const bill = rentData.rent + ((units * appData.settings.rateElectric)*((r.elecPercent||100)/100)) + waterCost + appData.settings.rateCommon + otherTotal;
             totalExpected += bill; if (rec.paid) totalCollected += bill;
           }
         }
@@ -1491,13 +1559,9 @@
       const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
       const units = Math.max(0, curMeter - r.lastMeter);
       const elecCost = (units * appData.settings.rateElectric) * ((r.elecPercent||100)/100);
-      const waterCost = appData.settings.rateWater * ((r.waterPercent||100)/100);
+      const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
       
       let otherItems = record.otherItems || [];
-      if (record.otherCost && otherItems.length === 0) {
-         otherItems.push({ label: record.otherLabel || '', cost: parseFloat(record.otherCost) || 0 });
-      }
-      
       let otherTotal = 0;
       let otherHtml = '';
       otherItems.forEach(item => {
@@ -1535,7 +1599,7 @@
       document.getElementById('invElecUnits').textContent = units;
       document.getElementById('invElecCost').textContent = currentInvoiceData.elecCost.toLocaleString()+".00";
       
-      document.getElementById('invWaterLabel').innerHTML = currentInvoiceData.waterPercent !== 100 ? `ค่าน้ำประปา <span class="text-rose-600 text-[10px]">(${currentInvoiceData.waterPercent}%)</span>` : "ค่าน้ำประปา";
+      document.getElementById('invWaterLabel').innerHTML = "ค่าน้ำประปา";
       document.getElementById('invWaterCost').textContent = currentInvoiceData.waterCost.toLocaleString()+".00";
       
       document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString()+".00";
@@ -1577,15 +1641,11 @@
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
         const units = Math.max(0, curMeter - r.lastMeter);
         const elecPercent = r.elecPercent !== undefined ? r.elecPercent : 100;
-        const waterPercent = r.waterPercent !== undefined ? r.waterPercent : 100;
+        const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
         const elecCost = (units * appData.settings.rateElectric) * (elecPercent/100);
-        const waterCost = appData.settings.rateWater * (waterPercent/100);
         const commonCost = appData.settings.rateCommon;
         
         let otherItems = record.otherItems || [];
-        if (record.otherCost && otherItems.length === 0) {
-           otherItems.push({ label: record.otherLabel || '', cost: parseFloat(record.otherCost) || 0 });
-        }
         let otherTotal = 0;
         let oRows = '';
         otherItems.forEach(item => {
@@ -1600,7 +1660,7 @@
         const tName = r.tenant.name || "ผู้เช่าห้อง "+r.roomNumber;
         let rTxt = rentData.days < rentData.totalDays ? `ค่าเช่า (${rentData.days} วัน)` : `ค่าเช่าห้องพัก`;
         let eTxt = elecPercent !== 100 ? `ค่าไฟ (${units} น. คิด ${elecPercent}%)` : `ค่าไฟ (${units} หน่วย)`;
-        let wTxt = waterPercent !== 100 ? `ค่าน้ำประปา (${waterPercent}%)` : `ค่าน้ำประปา`;
+        let wTxt = "ค่าน้ำประปา";
 
         const qrUrl = appData.settings.bankQrCodeUrl || "";
         let qrHtml = qrUrl ? `<img src="${qrUrl}" class="w-12 h-12 object-contain rounded bg-white p-0.5 border">` : '';
@@ -1661,7 +1721,7 @@
       const d = currentInvoiceData;
       let rTxt = d.days < d.totalDays ? `1. ค่าเช่า (${d.days} วัน): ${d.roomPrice.toLocaleString()} บ.` : `1. ค่าเช่า: ${d.roomPrice.toLocaleString()} บ.`;
       let eTxt = d.elecPercent !== 100 ? `2. ค่าไฟ (${d.units} น. คิด ${d.elecPercent}%): ${d.elecCost.toLocaleString()} บ.` : `2. ค่าไฟ (${d.units} หน่วย): ${d.elecCost.toLocaleString()} บ.`;
-      let wTxt = d.waterPercent !== 100 ? `3. ค่าน้ำ (คิด ${d.waterPercent}%): ${d.waterCost.toLocaleString()} บ.` : `3. ค่าน้ำ: ${d.waterCost.toLocaleString()} บ.`;
+      let wTxt = `3. ค่าน้ำ: ${d.waterCost.toLocaleString()} บ.`;
 
       let oTxt = '';
       let lineIdx = 5;
@@ -1707,7 +1767,7 @@
                   appData.rooms.push({
                       id: nStr, roomNumber: nStr, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", 
                       tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, 
-                      lastMeter: 0
+                      lastMeter: 0, appliances: []
                   });
               }
           }
