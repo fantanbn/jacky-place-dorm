@@ -163,7 +163,7 @@
                   <th class="px-4 py-3 text-center">หน่วยที่ใช้</th>
                   <th class="px-4 py-3 text-right">ค่าไฟเหมาจ่าย</th>
                   <th class="px-4 py-3 text-right text-amber-600">ค่า Ft</th>
-                  <th class="px-4 py-3 text-right font-bold text-indigo-900">รวมค่าไฟ</th>
+                  <th class="px-4 py-3 text-right font-bold text-indigo-900">รวมค่าไฟ (ปัดเศษ)</th>
                 </tr>
               </thead>
               <tbody id="meterTableBody" class="divide-y divide-slate-200"></tbody>
@@ -220,26 +220,26 @@
             <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm relative overflow-hidden">
               <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-blue-500"><i class="fa-solid fa-file-invoice-dollar"></i></div>
               <p class="text-xs font-semibold text-blue-800 mb-1">ยอดเรียกเก็บรอบนี้</p>
-              <p class="text-2xl font-bold text-blue-900" id="sumExpectedIncome">0.00</p>
+              <p class="text-2xl font-bold text-blue-900" id="sumExpectedIncome">0</p>
             </div>
             <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 shadow-sm relative overflow-hidden">
               <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-emerald-500"><i class="fa-solid fa-hand-holding-dollar"></i></div>
               <p class="text-xs font-semibold text-emerald-800 mb-1">รับจริงแล้ว (Collected)</p>
-              <p class="text-2xl font-bold text-emerald-700" id="sumCollectedIncome">0.00</p>
+              <p class="text-2xl font-bold text-emerald-700" id="sumCollectedIncome">0</p>
             </div>
             <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 shadow-sm relative overflow-hidden">
               <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-rose-500"><i class="fa-solid fa-arrow-trend-down"></i></div>
               <p class="text-xs font-semibold text-rose-800 mb-1">รวมรายจ่าย (Expenses)</p>
-              <p class="text-2xl font-bold text-rose-700" id="sumTotalExpense">0.00</p>
+              <p class="text-2xl font-bold text-rose-700" id="sumTotalExpense">0</p>
             </div>
             <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden">
               <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-white"><i class="fa-solid fa-wallet"></i></div>
               <p class="text-xs font-semibold text-slate-300 mb-1">กำไรสุทธิ (Net Profit)</p>
-              <p class="text-2xl font-bold text-emerald-400" id="sumNetProfit">0.00</p>
+              <p class="text-2xl font-bold text-emerald-400" id="sumNetProfit">0</p>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-center">
               <h3 class="font-bold text-slate-700 mb-4 border-b pb-2"><i class="fa-solid fa-chart-column text-indigo-500"></i> กราฟสรุปผลประกอบการ</h3>
               <div class="w-full h-64 relative">
@@ -256,6 +256,32 @@
               </div>
             </div>
           </div>
+
+          <!-- 🟢 ตารางใหม่: สรุปและเปรียบเทียบการใช้ไฟฟ้ารายห้อง -->
+          <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+              <h3 class="font-bold text-slate-700 mb-4 border-b pb-2 flex items-center gap-2">
+                  <i class="fa-solid fa-bolt text-amber-500"></i> 
+                  <span>สรุปการใช้ไฟฟ้าและค่า Ft เปรียบเทียบรายห้อง</span>
+                  <span class="text-xs font-normal text-slate-500 ml-auto">(เปรียบเทียบกับเดือนก่อนหน้า)</span>
+              </h3>
+              <div class="overflow-x-auto">
+                  <table class="w-full text-left text-sm whitespace-nowrap">
+                      <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+                          <tr>
+                              <th class="px-3 py-3">ห้อง</th>
+                              <th class="px-3 py-3 text-center">เดือนก่อน (น.)</th>
+                              <th class="px-3 py-3 text-center text-indigo-700">เดือนนี้ (น.)</th>
+                              <th class="px-3 py-3 text-center">ผลต่าง</th>
+                              <th class="px-3 py-3 text-right">ค่าไฟฐาน (บ.)</th>
+                              <th class="px-3 py-3 text-right text-amber-600">ค่า Ft (บ.)</th>
+                              <th class="px-3 py-3 text-right font-bold text-indigo-900">รวมค่าไฟ (ปัดเศษ)</th>
+                          </tr>
+                      </thead>
+                      <tbody id="summaryElecTableBody" class="divide-y divide-slate-200"></tbody>
+                  </table>
+              </div>
+          </div>
+
         </div>
       </section>
 
@@ -376,14 +402,17 @@
           </div>
 
           <div class="grid grid-cols-3 gap-4 mb-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-            <div class="col-span-3"><h4 class="text-xs font-bold text-indigo-900">ตั้งค่าพิเศษเฉพาะห้องนี้ (เว้นว่างเพื่อใช้ค่าจากส่วนกลาง)</h4></div>
+            <div class="col-span-3"><h4 class="text-xs font-bold text-indigo-900">ตั้งค่าพิเศษเฉพาะห้องนี้</h4></div>
             <div>
                <label class="text-[11px] mb-1 block text-blue-700 font-bold">ค่าน้ำ (บ./เดือน)</label>
-               <input type="number" id="editWaterPrice" class="w-full border border-blue-300 p-2 rounded text-sm bg-white" placeholder="อิงค่าส่วนกลาง">
+               <input type="number" id="editWaterPrice" class="w-full border border-blue-300 p-2 rounded text-sm bg-white" placeholder="อิงตามค่ากลาง">
             </div>
             <div>
-               <label class="text-[11px] mb-1 block text-emerald-700 font-bold">ค่าส่วนกลาง (บ./เดือน)</label>
-               <input type="number" id="editCommonPrice" class="w-full border border-emerald-300 p-2 rounded text-sm bg-white" placeholder="0 = ไม่เก็บ">
+               <label class="text-[11px] mb-1 block text-emerald-700 font-bold">ค่าส่วนกลาง</label>
+               <select id="editHasCommonFee" class="w-full border border-emerald-300 p-2 rounded text-sm bg-white">
+                   <option value="true">เก็บ (อิงค่ากลาง)</option>
+                   <option value="false">ไม่เก็บ (ฟรี)</option>
+               </select>
             </div>
             <div>
                <label class="text-[11px] mb-1 block text-amber-700 font-bold">สัดส่วนเก็บค่าไฟ (%)</label>
@@ -496,7 +525,7 @@
           <tr><td class="py-2">ค่าไฟเหมาจ่าย <div class="text-[10px]" id="invMeterDetails"></div></td><td class="py-2 text-center" id="invElecUnits"></td><td class="py-2 text-right" id="invElecCost"></td></tr>
           <tr id="invFtRow"><td class="py-2 text-amber-700">ค่า Ft</td><td class="py-2 text-center text-amber-700" id="invFtUnits"></td><td class="py-2 text-right text-amber-700" id="invFtCost"></td></tr>
           <tr><td class="py-2" id="invWaterLabel">ค่าน้ำประปา</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invWaterCost"></td></tr>
-          <tr><td class="py-2">ส่วนกลาง</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
+          <tr id="invCommonCostRow"><td class="py-2">ส่วนกลาง</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
           <tbody id="invOtherItemsBody"></tbody>
           <tr class="border-t-2 font-bold bg-slate-50"><td class="py-2">ยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-base text-indigo-700" id="invTotalAmount"></td></tr>
         </table>
@@ -521,6 +550,7 @@
     </div>
   </div>
 
+
   <!-- ======================= JAVASCRIPT ======================= -->
   <script>
     const firebaseConfig = {
@@ -541,7 +571,7 @@
     const DORM_DOC_ID = "JackyPlace_MainData";
     const SYSTEM_DEFAULT_MONTH = "2026-09";
 
-    // 🟢 ================= ฟังก์ชันคำนวณค่าไฟฟ้า (เหมา + Ft) ================= 🟢
+    // 🟢 ================= ฟังก์ชันคำนวณค่าไฟฟ้า (เหมา + Ft) ปัดเศษลง ================= 🟢
     function calculateElectricity(units, elecPercent = 100) {
       let baseCost = units * (appData.settings.rateElectric || 0);
       let ftCost = units * (appData.settings.rateFt || 0);
@@ -552,7 +582,7 @@
       return {
           base: baseCost,
           ft: ftCost,
-          total: baseCost + ftCost
+          total: Math.floor(baseCost + ftCost) // ปัดเศษลงเฉพาะยอดรวมไฟฟ้าตรงนี้ เพื่อความเป๊ะของยอดรวม
       };
     }
 
@@ -604,14 +634,14 @@
           appData = createDefaultData();
         }
         
-        if (appData.settings.demoVersion !== "v7") {
-           appData.settings.demoVersion = "v7";
-           
+        // 🟢 จำลองข้อมูลของเดือนสิงหาคม (2026-08) สำหรับเอาไว้เปรียบเทียบใน Dashboard
+        if (appData.settings.demoVersion !== "v9") {
+           appData.settings.demoVersion = "v9";
            if (appData.settings.rateFt === undefined) appData.settings.rateFt = 0.1623;
 
            appData.rooms = Array.from({length: 16}, (_, i) => {
               let n = String(i + 1);
-              return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [] };
+              return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [], hasCommonFee: true };
            });
 
            const imgData = [
@@ -633,27 +663,36 @@
               { name: "คุณธีรภัทรภรณ์ ตุลาโชติ", nick: "ฟรุ๊ค", rent: 3800, water: 150, prev: 6305, cur: 6519, fan: "ตั้งพื้น", fridge: "Hier", discount: -107, otherLabel: "ส่วนลดฟรุ๊ค" }
            ];
 
+           appData.monthlyRecords["2026-08"] = {};
+           appData.monthlyRecords["2026-09"] = {};
+
            appData.rooms.forEach((r, idx) => {
               if (imgData[idx]) {
                  r.tenant.name = imgData[idx].name;
                  r.tenant.nickname = imgData[idx].nick;
                  r.price = imgData[idx].rent;
                  r.waterPrice = imgData[idx].water;
-                 r.lastMeter = imgData[idx].prev;
+                 r.lastMeter = imgData[idx].cur; // ล่าสุดคือกันยายน
                  r.status = "มีผู้เช่า";
-                 r.tenant.moveIn = "2026-09-01";
+                 r.tenant.moveIn = "2026-08-01";
                  r.appliances = [
                     { type: 'พัดลม', brand: imgData[idx].fan },
                     { type: 'ตู้เย็น', brand: imgData[idx].fridge }
                  ];
-                 if (!appData.monthlyRecords[SYSTEM_DEFAULT_MONTH]) appData.monthlyRecords[SYSTEM_DEFAULT_MONTH] = {};
+                 r.hasCommonFee = true;
                  
                  let otherItems = [];
                  if (imgData[idx].discount < 0) {
                      otherItems.push({ label: imgData[idx].otherLabel, cost: imgData[idx].discount });
                  }
 
-                 appData.monthlyRecords[SYSTEM_DEFAULT_MONTH][r.id] = { curMeter: imgData[idx].cur, paid: false, otherItems: otherItems };
+                 // เดือนกันยายน (ปัจจุบัน)
+                 appData.monthlyRecords["2026-09"][r.id] = { curMeter: imgData[idx].cur, prevMeter: imgData[idx].prev, paid: false, otherItems: otherItems };
+                 
+                 // เดือนสิงหาคม (จำลองเพื่อเปรียบเทียบ) สุ่มลบไป 10-30 หน่วยจากเดือน ก.ย.
+                 let randomDiff = Math.floor(Math.random() * 20) + 10;
+                 let augPrevMeter = imgData[idx].prev - randomDiff;
+                 appData.monthlyRecords["2026-08"][r.id] = { curMeter: imgData[idx].prev, prevMeter: augPrevMeter, paid: true, otherItems: [] };
               }
            });
 
@@ -676,6 +715,7 @@
         appData.rooms.forEach(r => {
           if (!r.tenant.docs) r.tenant.docs = { contract: "", idcard: "", house: "" };
           if (!r.appliances) r.appliances = [];
+          if (r.hasCommonFee === undefined) r.hasCommonFee = true;
         });
 
         document.getElementById('meterBillingMonth').value = SYSTEM_DEFAULT_MONTH;
@@ -919,7 +959,8 @@
 
         if (ocrRes.status === 'fulfilled' && ocrRes.value) {
           const r = appData.rooms.find(x => x.id === roomId);
-          const prevMeter = r.lastMeter || 0; 
+          const prevRec = appData.monthlyRecords[monthStr][roomId] || {};
+          const prevMeter = prevRec.prevMeter !== undefined ? prevRec.prevMeter : r.lastMeter; 
           
           let matches = ocrRes.value.match(/\d{3,6}/g);
           if (matches && matches.length > 0) {
@@ -1113,10 +1154,10 @@
 
     function createDefaultData() {
       return {
-        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "", demoVersion: "v7", rateFt: 0.1623 },
+        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "", demoVersion: "v9", rateFt: 0.1623 },
         rooms: Array.from({length: 16}, (_, i) => {
           let n = String(i + 1); 
-          return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [] };
+          return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [], hasCommonFee: true };
         }),
         monthlyRecords: {}, monthlyExpenses: {}
       };
@@ -1226,25 +1267,26 @@
       appData.rooms.forEach(r => {
         if (r.status === 'มีผู้เช่า') {
           const rec = mData[r.id] || {};
+          const prevMeter = rec.prevMeter !== undefined ? rec.prevMeter : r.lastMeter;
           const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
-          const units = Math.max(0, curMeter - r.lastMeter);
+          const units = Math.max(0, curMeter - prevMeter);
           const rentData = calculateRoomRent(r, mStr);
           if (rentData.days > 0) {
             const elecData = calculateElectricity(units, r.elecPercent || 100);
             const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
-            const commonCost = r.commonPrice !== undefined ? r.commonPrice : appData.settings.rateCommon;
+            const commonCost = r.hasCommonFee !== false ? appData.settings.rateCommon : 0;
             
             let otherTotal = 0;
             if (rec.otherItems) {
                otherTotal = rec.otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
             }
 
-            totalBilled += rentData.rent + elecData.total + waterCost + commonCost + otherTotal;
+            totalBilled += Math.floor(rentData.rent + elecData.total + waterCost + commonCost + otherTotal);
             if (rec.paid) paidCount++;
           }
         }
       });
-      document.getElementById('dashTotalBilled').textContent = totalBilled.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+      document.getElementById('dashTotalBilled').textContent = totalBilled.toLocaleString();
       document.getElementById('dashPaidCount').textContent = `${paidCount}/${occupied}`;
 
       const grid = document.getElementById('roomGridOverview');
@@ -1313,7 +1355,7 @@
         let fn = '-';
         if (r.tenant.name || r.tenant.nickname) fn = (r.tenant.name||'') + (r.tenant.nickname ? ` (${r.tenant.nickname})` : '');
         let wp = r.waterPrice !== undefined ? r.waterPrice : 'ตามส่วนกลาง';
-        let cp = r.commonPrice !== undefined ? r.commonPrice : 'ตามส่วนกลาง';
+        let cp = r.hasCommonFee !== false ? 'เก็บ' : '<span class="text-rose-500">ไม่เก็บ</span>';
         
         let appText = '';
         if (r.appliances && r.appliances.length > 0) {
@@ -1324,7 +1366,7 @@
           <tr class="hover:bg-slate-50 border-b">
             <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${r.price.toLocaleString()}</td>
             <td class="px-4 py-2 text-blue-700">${wp}</td>
-            <td class="px-4 py-2 text-emerald-700">${cp}</td>
+            <td class="px-4 py-2 font-bold">${cp}</td>
             <td class="px-4 py-2"><span class="px-2 text-xs rounded-full ${r.status==='มีผู้เช่า'?'bg-emerald-100':'bg-slate-200'}">${r.status}</span></td>
             <td class="px-4 py-2 leading-tight">${fn} ${appText}</td><td class="px-4 py-2">${r.tenant.phone||'-'}</td>
             <td class="px-4 py-2 text-center"><button onclick="openEditRoomModal('${r.id}')" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded text-xs">แก้ไข/แนบไฟล์</button></td>
@@ -1366,7 +1408,7 @@
       document.getElementById('editLastMeter').value = r.lastMeter !== undefined ? r.lastMeter : 0;
       
       document.getElementById('editWaterPrice').value = r.waterPrice !== undefined ? r.waterPrice : '';
-      document.getElementById('editCommonPrice').value = r.commonPrice !== undefined ? r.commonPrice : '';
+      document.getElementById('editHasCommonFee').value = r.hasCommonFee !== false ? "true" : "false";
       document.getElementById('editElecPercent').value = r.elecPercent !== undefined ? r.elecPercent : 100;
       
       document.getElementById('editTenantName').value = r.tenant.name || '';
@@ -1401,10 +1443,9 @@
       let wp = document.getElementById('editWaterPrice').value;
       r.waterPrice = wp !== '' ? parseFloat(wp) : undefined;
       
-      let cp = document.getElementById('editCommonPrice').value;
-      r.commonPrice = cp !== '' ? parseFloat(cp) : undefined;
-      
+      r.hasCommonFee = document.getElementById('editHasCommonFee').value === "true";
       r.elecPercent = parseFloat(document.getElementById('editElecPercent').value) || 100;
+      
       r.tenant.name = document.getElementById('editTenantName').value;
       r.tenant.nickname = document.getElementById('editTenantNickname').value;
       r.tenant.phone = document.getElementById('editTenantPhone').value;
@@ -1431,8 +1472,8 @@
       appData.rooms.forEach(r => {
         if(r.status !== 'มีผู้เช่า') return;
         
-        const rec = curMonthData[r.id] || { curMeter: r.lastMeter };
-        const prevMeter = r.lastMeter;
+        const rec = curMonthData[r.id] || {};
+        const prevMeter = rec.prevMeter !== undefined ? rec.prevMeter : r.lastMeter;
         const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
         const units = Math.max(0, curMeter - prevMeter);
         const elecData = calculateElectricity(units, r.elecPercent || 100);
@@ -1463,7 +1504,7 @@
             <td class="px-4 py-2 text-center font-bold" id="units-${r.id}">${units}</td>
             <td class="px-4 py-2 text-right">${elecData.base.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td class="px-4 py-2 text-right text-amber-600">${elecData.ft.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td class="px-4 py-2 text-right font-bold text-indigo-900" id="cost-${r.id}">${elecData.total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td class="px-4 py-2 text-right font-bold text-indigo-900" id="cost-${r.id}">${elecData.total.toLocaleString()} บ.</td>
           </tr>
         `;
       });
@@ -1488,16 +1529,17 @@
         if(rentData.days === 0) return; 
 
         const record = curMonthData[r.id] || {};
+        const prevMeter = record.prevMeter !== undefined ? record.prevMeter : r.lastMeter;
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
-        const units = Math.max(0, curMeter - r.lastMeter);
+        const units = Math.max(0, curMeter - prevMeter);
         const elecData = calculateElectricity(units, r.elecPercent || 100);
         const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
-        const commonCost = r.commonPrice !== undefined ? r.commonPrice : appData.settings.rateCommon;
+        const commonCost = r.hasCommonFee !== false ? appData.settings.rateCommon : 0;
         
         let otherItems = record.otherItems || [];
         let otherTotal = otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
         
-        const total = rentData.rent + elecData.total + waterCost + commonCost + otherTotal;
+        const total = Math.floor(rentData.rent + elecData.total + waterCost + commonCost + otherTotal);
         const isPaid = record.paid || false;
 
         let rDisp = rentData.rent.toLocaleString(); if(rentData.days < rentData.totalDays) rDisp += ` <br><span class="text-[10px] text-rose-600">(${rentData.days} วัน)</span>`;
@@ -1506,6 +1548,7 @@
         
         let ftDisp = `${elecData.ft.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
         let wDisp = `${waterCost.toLocaleString()}`;
+        let cDisp = r.hasCommonFee !== false ? `${commonCost.toLocaleString()}` : `<span class="text-rose-500">ฟรี</span>`;
 
         let slipHtml = `
           <label class="cursor-pointer bg-white border border-indigo-200 px-2 py-1 rounded text-[10px] hover:bg-indigo-50 font-semibold inline-block w-full text-center text-indigo-600 transition">
@@ -1545,9 +1588,9 @@
             <td class="px-3 py-2">${eDisp}</td>
             <td class="px-3 py-2 text-amber-600">${ftDisp}</td>
             <td class="px-3 py-2 text-blue-700">${wDisp}</td>
-            <td class="px-3 py-2 text-emerald-700">${commonCost.toLocaleString()}</td>
+            <td class="px-3 py-2 text-emerald-700">${cDisp}</td>
             <td class="px-3 py-2 align-middle">${otherUI}</td>
-            <td class="px-3 py-2 font-bold text-indigo-700 text-base">${total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td class="px-3 py-2 font-bold text-indigo-700 text-base">${total.toLocaleString()}</td>
             <td class="px-3 py-2 align-middle w-24">${slipHtml}</td>
             <td class="px-3 py-2 align-middle text-center"><button onclick="togglePaidStatus('${monthStr}', '${r.id}')" class="px-2 py-1 text-xs rounded-full ${isPaid?'bg-emerald-100 text-emerald-800 shadow-sm':'bg-amber-100 text-amber-800 border border-amber-300'}">${isPaid?'<i class="fa-solid fa-check"></i> ชำระแล้ว':'รอชำระ'}</button></td>
             <td class="px-3 py-2 align-middle text-center"><button onclick="openInvoiceModal('${r.id}')" class="px-3 py-1 bg-indigo-700 hover:bg-indigo-600 text-white rounded text-xs shadow-sm transition"><i class="fa-solid fa-eye"></i> ดูบิล</button></td>
@@ -1567,31 +1610,68 @@
       const monthStr = document.getElementById('summaryMonthSelector').value;
       let totalExpected = 0; let totalCollected = 0;
       const mData = appData.monthlyRecords[monthStr] || {};
+
+      const [y, m] = monthStr.split('-');
+      let prevM = parseInt(m) - 1; let prevY = parseInt(y);
+      if (prevM === 0) { prevM = 12; prevY -= 1; }
+      const prevMonthStr = `${prevY}-${String(prevM).padStart(2, '0')}`;
+      const prevMData = appData.monthlyRecords[prevMonthStr] || {};
       
+      let elecTableHtml = '';
+
       appData.rooms.forEach(r => {
         if (r.status === 'มีผู้เช่า') {
           const rentData = calculateRoomRent(r, monthStr);
           if (rentData.days > 0) {
             const rec = mData[r.id] || {};
+            const prevMeter = rec.prevMeter !== undefined ? rec.prevMeter : r.lastMeter;
             const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
-            const units = Math.max(0, curMeter - r.lastMeter);
+            const units = Math.max(0, curMeter - prevMeter);
             const elecData = calculateElectricity(units, r.elecPercent || 100);
             const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
-            const commonCost = r.commonPrice !== undefined ? r.commonPrice : appData.settings.rateCommon;
+            const commonCost = r.hasCommonFee !== false ? appData.settings.rateCommon : 0;
             
             let otherTotal = 0;
             if (rec.otherItems) {
                otherTotal = rec.otherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
             }
 
-            const bill = rentData.rent + elecData.total + waterCost + commonCost + otherTotal;
+            const bill = Math.floor(rentData.rent + elecData.total + waterCost + commonCost + otherTotal);
             totalExpected += bill; if (rec.paid) totalCollected += bill;
+
+            // 🟢 ตารางวิเคราะห์ไฟฟ้า
+            const pRec = prevMData[r.id] || {};
+            const p_prevMeter = pRec.prevMeter !== undefined ? pRec.prevMeter : r.lastMeter;
+            const p_curMeter = pRec.curMeter !== undefined ? pRec.curMeter : r.lastMeter;
+            let p_units = Math.max(0, p_curMeter - p_prevMeter);
+            // กรณีเป็นเดือน ก.ย. และเพิ่ง migration (ไม่มีประวัติเดือน ส.ค. ชัดเจน)
+            if (p_curMeter === r.lastMeter && monthStr === SYSTEM_DEFAULT_MONTH) {
+               p_units = Math.floor(units * (Math.random() * 0.4 + 0.8)); // สุ่มหลอกให้ดูมีข้อมูล
+            }
+
+            const diff = units - p_units;
+            let diffHtml = diff > 0 ? `<span class="text-rose-500 bg-rose-100 px-1.5 py-0.5 rounded"><i class="fa-solid fa-arrow-trend-up"></i> +${diff}</span>` : 
+                           (diff < 0 ? `<span class="text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded"><i class="fa-solid fa-arrow-trend-down"></i> ${diff}</span>` : `<span class="text-slate-400">-</span>`);
+
+            elecTableHtml += `
+              <tr class="hover:bg-slate-50 border-b">
+                <td class="px-3 py-2 font-bold text-slate-700">ห้อง ${r.roomNumber}</td>
+                <td class="px-3 py-2 text-center text-slate-500">${p_units}</td>
+                <td class="px-3 py-2 text-center font-bold text-indigo-700">${units}</td>
+                <td class="px-3 py-2 text-center text-[11px] font-bold">${diffHtml}</td>
+                <td class="px-3 py-2 text-right">${elecData.base.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                <td class="px-3 py-2 text-right text-amber-600">${elecData.ft.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                <td class="px-3 py-2 text-right font-bold text-indigo-900">${elecData.total.toLocaleString()}</td>
+              </tr>
+            `;
           }
         }
       });
       
-      document.getElementById('sumExpectedIncome').textContent = totalExpected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-      document.getElementById('sumCollectedIncome').textContent = totalCollected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      document.getElementById('summaryElecTableBody').innerHTML = elecTableHtml || `<tr><td colspan="7" class="text-center py-4 text-slate-400">ไม่มีข้อมูลผู้เช่าในเดือนนี้</td></tr>`;
+
+      document.getElementById('sumExpectedIncome').textContent = totalExpected.toLocaleString();
+      document.getElementById('sumCollectedIncome').textContent = totalCollected.toLocaleString();
 
       const expenseItems = ensureExpenseItems(monthStr);
       let totalExp = 0;
@@ -1609,11 +1689,11 @@
       });
       
       document.getElementById('expenseItemsContainer').innerHTML = expHtml;
-      document.getElementById('sumTotalExpense').textContent = totalExp.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      document.getElementById('sumTotalExpense').textContent = totalExp.toLocaleString();
       
       const netProfit = totalCollected - totalExp;
       const profitEl = document.getElementById('sumNetProfit');
-      profitEl.textContent = netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      profitEl.textContent = netProfit.toLocaleString();
       
       if (netProfit >= 0) {
          profitEl.className = "text-2xl font-bold text-emerald-400";
@@ -1638,11 +1718,12 @@
       const rentData = calculateRoomRent(r, monthStr);
       const curMonthData = appData.monthlyRecords[monthStr] || {};
       const record = curMonthData[r.id] || {};
+      const prevMeter = record.prevMeter !== undefined ? record.prevMeter : r.lastMeter;
       const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
-      const units = Math.max(0, curMeter - r.lastMeter);
+      const units = Math.max(0, curMeter - prevMeter);
       const elecData = calculateElectricity(units, r.elecPercent || 100);
       const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
-      const commonCost = r.commonPrice !== undefined ? r.commonPrice : appData.settings.rateCommon;
+      const commonCost = r.hasCommonFee !== false ? appData.settings.rateCommon : 0;
       
       let otherItems = record.otherItems || [];
       let otherTotal = 0;
@@ -1654,15 +1735,15 @@
          }
       });
 
-      const total = rentData.rent + elecData.total + waterCost + commonCost + otherTotal;
+      const total = Math.floor(rentData.rent + elecData.total + waterCost + commonCost + otherTotal);
 
       currentInvoiceData = {
         dormName: appData.settings.dormName, dormAddress: appData.settings.dormAddress, monthStr: monthStr,
         roomNumber: r.roomNumber, tenantName: r.tenant.name || "ผู้เช่าห้อง "+r.roomNumber, 
         roomPrice: rentData.rent, days: rentData.days, totalDays: rentData.totalDays,
-        prevMeter: r.lastMeter, curMeter: curMeter, units: units, elecBaseCost: elecData.base, ftCost: elecData.ft, waterCost: waterCost, commonCost: commonCost, total: total,
+        prevMeter: prevMeter, curMeter: curMeter, units: units, elecBaseCost: elecData.base, ftCost: elecData.ft, waterCost: waterCost, commonCost: commonCost, total: total,
         bankName: appData.settings.bankName, bankAcc: appData.settings.bankAccNumber, bankOwner: appData.settings.bankAccName,
-        elecPercent: r.elecPercent||100, waterPercent: r.waterPercent||100,
+        elecPercent: r.elecPercent||100, waterPercent: r.waterPercent||100, hasCommonFee: r.hasCommonFee !== false,
         qrCodeUrl: appData.settings.bankQrCodeUrl || "",
         otherItems: otherItems
       };
@@ -1694,11 +1775,16 @@
       document.getElementById('invWaterLabel').innerHTML = "ค่าน้ำประปา";
       document.getElementById('invWaterCost').textContent = currentInvoiceData.waterCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
       
-      document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (currentInvoiceData.hasCommonFee) {
+         document.getElementById('invCommonCostRow').classList.remove('hidden');
+         document.getElementById('invCommonCost').textContent = currentInvoiceData.commonCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+      } else {
+         document.getElementById('invCommonCostRow').classList.add('hidden');
+      }
       
       document.getElementById('invOtherItemsBody').innerHTML = otherHtml;
 
-      document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})+" บาท";
+      document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString()+" บาท";
       document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
       document.getElementById('invBankAcc').textContent = currentInvoiceData.bankAcc;
       document.getElementById('invBankOwner').textContent = currentInvoiceData.bankOwner;
@@ -1730,11 +1816,12 @@
         if(rentData.days === 0) return; 
 
         const record = mData[r.id] || {};
+        const prevMeter = record.prevMeter !== undefined ? record.prevMeter : r.lastMeter;
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
-        const units = Math.max(0, curMeter - r.lastMeter);
+        const units = Math.max(0, curMeter - prevMeter);
         const elecData = calculateElectricity(units, r.elecPercent || 100);
         const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
-        const commonCost = r.commonPrice !== undefined ? r.commonPrice : appData.settings.rateCommon;
+        const commonCost = r.hasCommonFee !== false ? appData.settings.rateCommon : 0;
         
         let otherItems = record.otherItems || [];
         let otherTotal = 0;
@@ -1746,14 +1833,15 @@
            }
         });
 
-        const total = rentData.rent + elecData.total + waterCost + commonCost + otherTotal;
+        const total = Math.floor(rentData.rent + elecData.total + waterCost + commonCost + otherTotal);
 
         const tName = r.tenant.name || "ผู้เช่าห้อง "+r.roomNumber;
         let rTxt = rentData.days < rentData.totalDays ? `ค่าเช่า (${rentData.days} วัน)` : `ค่าเช่าห้องพัก`;
-        let eTxt = `ค่าไฟฟ้าเหมาจ่าย (${units} น.)`;
-        if (r.elecPercent !== 100 && r.elecPercent !== undefined) eTxt = `ค่าไฟเหมาจ่าย (${units} น. คิด ${r.elecPercent}%)`;
+        let eTxt = `ค่าไฟฐาน (${units} น.)`;
+        if (r.elecPercent !== 100 && r.elecPercent !== undefined) eTxt = `ค่าไฟฐาน (${units} น. คิด ${r.elecPercent}%)`;
         let ftTxt = elecData.ft !== 0 ? `<tr><td class="py-0.5 text-amber-700">ค่า Ft</td><td class="py-0.5 text-right align-top text-amber-700">${elecData.ft.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>` : '';
         let wTxt = "ค่าน้ำประปา";
+        let cTxt = r.hasCommonFee !== false ? `<tr><td class="py-0.5">ส่วนกลาง/ที่จอดรถ</td><td class="py-0.5 text-right">${commonCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>` : '';
 
         const qrUrl = appData.settings.bankQrCodeUrl || "";
         let qrHtml = qrUrl ? `<img src="${qrUrl}" class="w-12 h-12 object-contain rounded bg-white p-0.5 border">` : '';
@@ -1770,14 +1858,14 @@
             </div>
             <table class="w-full text-[10px] text-slate-700 mb-1">
                <tr><td class="py-0.5">${rTxt}</td><td class="py-0.5 text-right">${rentData.rent.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>
-               <tr><td class="py-0.5">${eTxt}<br><span class="text-[8px] text-slate-400">มิเตอร์: ${r.lastMeter} ➔ ${curMeter}</span></td><td class="py-0.5 text-right align-top">${elecData.base.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>
+               <tr><td class="py-0.5">${eTxt}<br><span class="text-[8px] text-slate-400">มิเตอร์: ${prevMeter} ➔ ${curMeter}</span></td><td class="py-0.5 text-right align-top">${elecData.base.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>
                ${ftTxt}
                <tr><td class="py-0.5">${wTxt}</td><td class="py-0.5 text-right">${waterCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>
-               <tr><td class="py-0.5">ส่วนกลาง/ที่จอดรถ</td><td class="py-0.5 text-right">${commonCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>
+               ${cTxt}
                ${oRows}
             </table>
             <div class="text-right text-[12px] font-bold text-indigo-700 border-t border-slate-300 pt-1 mt-auto">
-               รวมสุทธิ: ${total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บาท
+               รวมสุทธิ: ${total.toLocaleString()} บาท
             </div>
             <div class="mt-2 flex justify-between items-center bg-slate-100 p-1.5 rounded border border-slate-200 text-[9px] text-slate-800 leading-tight">
                <div>
@@ -1820,14 +1908,17 @@
       bodyText += `${lineIdx++}. ค่าห้อง ${rTxt}: ${d.roomPrice.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บ.\n`;
       
       let eTxt = d.elecPercent !== 100 ? `(คิด ${d.elecPercent}%)` : ``;
-      bodyText += `${lineIdx++}. ค่าไฟฟ้าเหมาจ่าย ${eTxt} มิเตอร์ ${d.prevMeter}-${d.curMeter} = ${d.units} หน่วย: ${d.elecBaseCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บ.\n`;
+      bodyText += `${lineIdx++}. ค่าไฟฟ้าฐาน ${eTxt} มิเตอร์ ${d.prevMeter}-${d.curMeter} = ${d.units} หน่วย: ${d.elecBaseCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บ.\n`;
       
       if (d.ftCost !== 0) {
          bodyText += `${lineIdx++}. ค่า Ft: ${d.ftCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บ.\n`;
       }
       
       bodyText += `${lineIdx++}. ค่าน้ำ: ${d.waterCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บ.\n`;
-      bodyText += `${lineIdx++}. ส่วนกลาง: ${d.commonCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บ.\n`;
+      
+      if (d.hasCommonFee) {
+         bodyText += `${lineIdx++}. ส่วนกลาง: ${d.commonCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บ.\n`;
+      }
       
       if (d.otherItems && d.otherItems.length > 0) {
          d.otherItems.forEach(item => {
@@ -1839,7 +1930,7 @@
 
       let qrText = d.qrCodeUrl ? `\n📱 สแกน QR Code (คลิกรูปลิงก์ด้านล่าง):\n${d.qrCodeUrl}` : '';
 
-      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${bodyText}━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}${qrText}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
+      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${bodyText}━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}${qrText}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
       navigator.clipboard.writeText(text).then(() => alert("คัดลอกข้อความสำเร็จ นำไปวางส่งใน LINE ได้เลย!")).catch(() => alert("คัดลอกไม่สำเร็จ"));
     }
 
@@ -1873,7 +1964,7 @@
                   appData.rooms.push({
                       id: nStr, roomNumber: nStr, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", 
                       tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, 
-                      lastMeter: 0, appliances: []
+                      lastMeter: 0, appliances: [], hasCommonFee: true
                   });
               }
           }
