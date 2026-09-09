@@ -337,7 +337,6 @@
               </div>
             </div>
             
-            <!-- 🟢 ส่วนตั้งค่าเงื่อนไขส่วนลดค่าไฟฟ้า 🟢 -->
             <div class="grid grid-cols-2 gap-4 mt-4 bg-rose-50 p-3 rounded-lg border border-rose-200">
                <div class="col-span-2 pb-1 border-b border-rose-200"><h4 class="text-sm font-bold text-rose-900">ตั้งค่าส่วนลดค่าไฟฟ้า</h4></div>
                <div>
@@ -546,7 +545,6 @@
           <tr class="border-b text-left"><th class="py-1">รายการ</th><th class="py-1 text-center">หน่วย</th><th class="py-1 text-right">จำนวนเงิน (บ.)</th></tr>
           <tr><td class="py-2" id="invRoomLabel">ค่าเช่าห้องพัก</td><td class="py-2 text-center">-</td><td class="py-2 text-right" id="invRoomPrice"></td></tr>
           
-          <!-- 🟢 รวมค่าไฟ + Ft เป็นช่องเดียว -->
           <tr><td class="py-2">ค่าไฟฟ้า <div class="text-[10px]" id="invMeterDetails"></div></td><td class="py-2 text-center" id="invElecUnits"></td><td class="py-2 text-right" id="invElecCost"></td></tr>
           <tr id="invElecDiscountRow" class="hidden"><td class="py-2 text-rose-600">ส่วนลดค่าไฟฟ้า</td><td class="py-2 text-center text-rose-600">-</td><td class="py-2 text-right text-rose-600" id="invElecDiscount"></td></tr>
           
@@ -569,7 +567,7 @@
             <p>ชื่อบัญชี: <span id="invBankOwner"></span></p>
           </div>
           <div id="invQrCodeBox" class="hidden">
-            <img id="invQrCodeImg" src="" class="w-32 h-32 object-contain rounded bg-white border border-indigo-200 p-1">
+            <img id="invQrCodeImg" src="" class="w-20 h-20 object-contain rounded bg-white border border-indigo-200 p-1">
           </div>
         </div>
 
@@ -685,8 +683,8 @@
           appData = createDefaultData();
         }
         
-        if (appData.settings.demoVersion !== "v17") {
-           appData.settings.demoVersion = "v17";
+        if (appData.settings.demoVersion !== "v18") {
+           appData.settings.demoVersion = "v18";
            if (!appData.settings.invoiceFooter) {
                appData.settings.invoiceFooter = "1. ชำระล่าช้ากว่ากำหนด ปรับวันละ 100 บาท\nชำระเงินภายในวันที่ 5 {month}\n2. ย้ายออก ต้องแจ้งล่วงหน้าก่อน 1 เดือน";
            }
@@ -1489,13 +1487,11 @@
           `;
         }
         
-        // 🟢 เพิ่มข้อมูลส่วนลดที่ขาดหายไปกลับมาโชว์ในตารางมิเตอร์
-        let discountHtml = elecData.discount > 0 ? `<span class="text-rose-500">-${elecData.discount.toLocaleString()}</span>` : '-';
+        let discountHtml = elecData.discount > 0 ? `<br><span class="text-[10px] text-rose-500 font-normal">ส่วนลด -${elecData.discount.toLocaleString()}</span>` : '';
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
-            <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td>
-            <td class="px-4 py-2">${prevMeter}</td>
+            <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${prevMeter}</td>
             <td class="px-4 py-2"><input type="number" value="${curMeter}" class="w-24 px-2 py-1 border rounded text-sm text-indigo-700 bg-white" onchange="updateSingleMeter('${r.id}', this.value)"></td>
             <td class="px-4 py-2">
               <div id="meterStatus-${r.id}" class="w-36">${meterPhotoHtml}</div>
@@ -1503,8 +1499,7 @@
             <td class="px-4 py-2 text-center font-bold" id="units-${r.id}">${units}</td>
             <td class="px-4 py-2 text-right">${elecData.base.toLocaleString()}</td>
             <td class="px-4 py-2 text-right text-amber-600">${elecData.ft.toLocaleString()}</td>
-            <td class="px-4 py-2 text-right font-medium">${discountHtml}</td>
-            <td class="px-4 py-2 text-right font-bold text-indigo-900" id="cost-${r.id}">${elecData.total.toLocaleString()} บ.</td>
+            <td class="px-4 py-2 text-right font-bold text-indigo-900" id="cost-${r.id}">${elecData.total.toLocaleString()} บ.${discountHtml}</td>
           </tr>
         `;
       });
@@ -1804,7 +1799,6 @@
       
       if (qrUrl) {
          qrImg.src = qrUrl;
-         // 🟢 ขยายขนาด QR Code ในหน้าต่างดูบิล (Modal) ให้ใหญ่เป็น 128px (w-32 h-32)
          qrImg.className = "w-32 h-32 object-contain rounded bg-white border border-indigo-200 p-1";
          qrBox.classList.remove('hidden');
       } else {
@@ -1843,7 +1837,7 @@
            let c = parseFloat(item.cost) || 0;
            if (c !== 0) {
               otherTotal += c;
-              oRows += `<tr><td class="py-0.5">${item.label || 'อื่นๆ'}</td><td class="py-0.5 text-right">${c.toLocaleString()}</td></tr>`;
+              oRows += `<tr><td class="py-0">${item.label || 'อื่นๆ'}</td><td class="py-0 text-right">${c.toLocaleString()}</td></tr>`;
            }
         });
 
@@ -1853,42 +1847,43 @@
         let rTxt = rentData.days < rentData.totalDays ? `ค่าเช่า (${rentData.days} วัน)` : `ค่าเช่าห้องพัก`;
         let eTxt = `ค่าไฟฟ้า (${units} น.)`;
         if (r.elecPercent !== 100 && r.elecPercent !== undefined) eTxt = `ค่าไฟฟ้า (${units} น. คิด ${r.elecPercent}%)`;
-        let elecDiscountRow = elecData.discount > 0 ? `<tr><td class="py-0.5 text-rose-600">ส่วนลดค่าไฟฟ้า</td><td class="py-0.5 text-right text-rose-600">-${elecData.discount.toLocaleString()}</td></tr>` : '';
+        let elecDiscountRow = elecData.discount > 0 ? `<tr><td class="py-0 text-rose-600">ส่วนลดค่าไฟฟ้า</td><td class="py-0 text-right text-rose-600">-${elecData.discount.toLocaleString()}</td></tr>` : '';
         
         let wTxt = "ค่าน้ำประปา";
-        let cTxt = r.hasCommonFee !== false ? `<tr><td class="py-0.5">ส่วนกลาง</td><td class="py-0.5 text-right">${commonCost.toLocaleString()}</td></tr>` : '';
+        let cTxt = r.hasCommonFee !== false ? `<tr><td class="py-0">ส่วนกลาง/ที่จอดรถ</td><td class="py-0 text-right">${commonCost.toLocaleString()}</td></tr>` : '';
 
         const qrUrl = appData.settings.bankQrCodeUrl || "";
-        // 🟢 ขยาย QR Code ในหน้าพิมพ์ A4 ให้ใหญ่ขึ้น (w-24 h-24 คือ 96px)
-        let qrHtml = qrUrl ? `<div class="ml-2 bg-white p-1 border border-slate-300 rounded shadow-sm flex-shrink-0"><img src="${qrUrl}" class="w-24 h-24 object-contain"></div>` : '';
+        // 🟢 ปรับขนาด QR Code เป็น w-16 h-16 (64px) เพื่อให้กะทัดรัดลง ไม่ดันเนื้อหาอื่นๆ
+        let qrHtml = qrUrl ? `<div class="ml-2 bg-white p-0.5 border border-slate-300 rounded shadow-sm flex-shrink-0"><img src="${qrUrl}" class="w-16 h-16 object-contain"></div>` : '';
         
-        let footerHtml = fText ? `<div class="mt-2 p-1.5 bg-amber-50 rounded border border-amber-200 text-[8px] text-amber-900 whitespace-pre-line leading-tight"><b>หมายเหตุ:</b>\n${fText}</div>` : '';
+        let footerHtml = fText ? `<div class="mt-1 p-1 bg-amber-50 rounded border border-amber-200 text-[7px] text-amber-900 whitespace-pre-line leading-tight"><b>หมายเหตุ:</b>\n${fText}</div>` : '';
 
+        // 🟢 ปรับแต่งโครงสร้างความสูง (49vh) ลด Padding เพื่อให้รองรับข้อความเยอะๆ ไม่ให้ล้นหน้า
         html += `
-          <div class="border border-slate-400 p-3 flex flex-col justify-between relative" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid;">
+          <div class="border border-slate-400 p-2 flex flex-col justify-between relative" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid; overflow: hidden;">
             <div class="text-center mb-1 border-b pb-1">
-              <h2 class="text-sm font-bold text-slate-800 leading-tight">${appData.settings.dormName}</h2>
-              <p class="text-[10px] text-slate-500 leading-tight">ใบแจ้งค่าเช่า ประจำเดือน: ${monthStr}</p>
+              <h2 class="text-[12px] font-bold text-slate-800 leading-tight">${appData.settings.dormName}</h2>
+              <p class="text-[9px] text-slate-500 leading-tight">ใบแจ้งค่าเช่า ประจำเดือน: ${monthStr}</p>
             </div>
-            <div class="flex justify-between text-[11px] font-bold mb-1 text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded">
+            <div class="flex justify-between text-[10px] font-bold mb-1 text-indigo-900 bg-indigo-50 px-1 py-0.5 rounded">
                <span>ห้อง: ${r.roomNumber}</span>
                <span class="truncate ml-2 text-right">${tName}</span>
             </div>
-            <table class="w-full text-[10px] text-slate-700 mb-1 flex-1">
-               <tr><td class="py-0.5">${rTxt}</td><td class="py-0.5 text-right">${rentData.rent.toLocaleString()}</td></tr>
-               <tr><td class="py-0.5">${eTxt}<br><span class="text-[8px] text-slate-400">มิเตอร์: ${prevMeter} ➔ ${curMeter}</span></td><td class="py-0.5 text-right align-top">${elecData.rawTotal.toLocaleString()}</td></tr>
+            <table class="w-full text-[9px] text-slate-700 mb-1 flex-1 leading-tight">
+               <tr><td class="py-0">${rTxt}</td><td class="py-0 text-right">${rentData.rent.toLocaleString()}</td></tr>
+               <tr><td class="py-0">${eTxt}<br><span class="text-[7px] text-slate-400">มิเตอร์: ${prevMeter} ➔ ${curMeter}</span></td><td class="py-0 text-right align-top">${elecData.rawTotal.toLocaleString()}</td></tr>
                ${elecDiscountRow}
-               <tr><td class="py-0.5">${wTxt}</td><td class="py-0.5 text-right">${waterCost.toLocaleString()}</td></tr>
+               <tr><td class="py-0">${wTxt}</td><td class="py-0 text-right">${waterCost.toLocaleString()}</td></tr>
                ${cTxt}
                ${oRows}
             </table>
-            <div class="text-right text-[13px] font-bold text-indigo-700 border-t border-slate-300 pt-1 mt-auto">
+            <div class="text-right text-[11px] font-bold text-indigo-700 border-t border-slate-300 pt-1 mt-auto">
                รวมสุทธิ: ${total.toLocaleString()} บาท
             </div>
-            <div class="mt-2 flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-200 text-[10px] text-slate-800 leading-tight shadow-sm">
+            <div class="mt-1 flex justify-between items-center bg-slate-50 p-1.5 rounded border border-slate-200 text-[9px] text-slate-800 leading-tight shadow-sm">
                <div class="flex-1">
                   <b class="text-indigo-900">ชำระเงินที่: ${appData.settings.bankName}</b><br>
-                  เลขที่: <span class="font-semibold text-indigo-700 text-[12px] block my-0.5">${appData.settings.bankAccNumber}</span>
+                  เลขที่: <span class="font-semibold text-indigo-700 text-[11px] block my-0.5">${appData.settings.bankAccNumber}</span>
                   ชื่อ: ${appData.settings.bankAccName}
                </div>
                ${qrHtml}
