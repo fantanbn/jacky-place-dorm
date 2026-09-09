@@ -306,7 +306,7 @@
                   <textarea id="setDormAddress" rows="3" class="w-full p-2 border rounded text-sm" required></textarea>
                </div>
                <div>
-                  <label class="block text-sm mb-1 font-bold text-indigo-900">ข้อความท้ายบิล (เงื่อนไข) <span class="font-normal text-xs text-slate-500">(พิมพ์ {month} เพื่อดึงเดือน)</span></label>
+                  <label class="block text-sm mb-1 font-bold text-indigo-900">ข้อความท้ายบิล (เงื่อนไข) <span class="font-normal text-xs text-slate-500">(พิมพ์ {month} เพื่อดึงเดือนอัตโนมัติ)</span></label>
                   <textarea id="setInvoiceFooter" rows="3" class="w-full p-2 border rounded text-sm" placeholder="เช่น 1. ชำระล่าช้าปรับวันละ 100..."></textarea>
                </div>
             </div>
@@ -337,7 +337,6 @@
               </div>
             </div>
             
-            <!-- 🟢 ส่วนตั้งค่าเงื่อนไขส่วนลดค่าไฟฟ้า 🟢 -->
             <div class="grid grid-cols-2 gap-4 mt-4 bg-rose-50 p-3 rounded-lg border border-rose-200">
                <div class="col-span-2 pb-1 border-b border-rose-200"><h4 class="text-sm font-bold text-rose-900">ตั้งค่าส่วนลดค่าไฟฟ้า</h4></div>
                <div>
@@ -545,8 +544,11 @@
         <table class="w-full text-xs mt-3 mb-4">
           <tr class="border-b text-left"><th class="py-1">รายการ</th><th class="py-1 text-center">หน่วย</th><th class="py-1 text-right">จำนวนเงิน (บ.)</th></tr>
           <tr><td class="py-2" id="invRoomLabel">ค่าเช่าห้องพัก</td><td class="py-2 text-center">-</td><td class="py-2 text-right" id="invRoomPrice"></td></tr>
+          
+          <!-- 🟢 รวมค่าไฟ + Ft เป็นช่องเดียว -->
           <tr><td class="py-2">ค่าไฟฟ้า <div class="text-[10px]" id="invMeterDetails"></div></td><td class="py-2 text-center" id="invElecUnits"></td><td class="py-2 text-right" id="invElecCost"></td></tr>
           <tr id="invElecDiscountRow" class="hidden"><td class="py-2 text-rose-600">ส่วนลดค่าไฟฟ้า</td><td class="py-2 text-center text-rose-600">-</td><td class="py-2 text-right text-rose-600" id="invElecDiscount"></td></tr>
+          
           <tr><td class="py-2" id="invWaterLabel">ค่าน้ำประปา</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invWaterCost"></td></tr>
           <tr id="invCommonCostRow"><td class="py-2">ส่วนกลาง</td><td class="py-2 text-center">เหมาจ่าย</td><td class="py-2 text-right" id="invCommonCost"></td></tr>
           <tbody id="invOtherItemsBody"></tbody>
@@ -598,12 +600,11 @@
     const DORM_DOC_ID = "JackyPlace_MainData";
     const SYSTEM_DEFAULT_MONTH = "2026-09";
 
-    // 🟢 ================= ฟังก์ชันคำนวณค่าไฟฟ้า (แบบประยุกต์ตั้งค่าส่วนลด) ================= 🟢
+    // 🟢 ================= ฟังก์ชันคำนวณค่าไฟฟ้า ================= 🟢
     function calculateElectricity(units, elecPercent = 100) {
       let baseCost = units * (appData.settings.rateElectric || 0);
       let ftCost = Math.floor(units * (appData.settings.rateFt || 0));
       
-      // ดึงการตั้งค่าส่วนลด
       let tHold = appData.settings.discountUnitThreshold !== undefined ? appData.settings.discountUnitThreshold : 140;
       let dRate = appData.settings.discountRatePerUnit !== undefined ? appData.settings.discountRatePerUnit : 0.5;
 
@@ -1142,7 +1143,7 @@
 
     function createDefaultData() {
       return {
-        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "", demoVersion: "v14", rateFt: 0.1623, invoiceFooter: "1. ชำระล่าช้ากว่ากำหนด ปรับวันละ 100 บาท\nชำระเงินภายในวันที่ 5 {month}\n2. ย้ายออก ต้องแจ้งล่วงหน้าก่อน 1 เดือน", discountUnitThreshold: 140, discountRatePerUnit: 0.5 },
+        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "", demoVersion: "v15", rateFt: 0.1623, invoiceFooter: "1. ชำระล่าช้ากว่ากำหนด ปรับวันละ 100 บาท\nชำระเงินภายในวันที่ 5 {month}\n2. ย้ายออก ต้องแจ้งล่วงหน้าก่อน 1 เดือน", discountUnitThreshold: 140, discountRatePerUnit: 0.5 },
         rooms: Array.from({length: 16}, (_, i) => {
           let n = String(i + 1); 
           return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [], hasCommonFee: true };
@@ -1191,7 +1192,6 @@
       document.getElementById('setRateWater').value = appData.settings.rateWater !== undefined ? appData.settings.rateWater : 150;
       document.getElementById('setRateCommon').value = appData.settings.rateCommon !== undefined ? appData.settings.rateCommon : 300;
       
-      // การตั้งค่าส่วนลด
       document.getElementById('setDiscountUnitThreshold').value = appData.settings.discountUnitThreshold !== undefined ? appData.settings.discountUnitThreshold : 140;
       document.getElementById('setDiscountRatePerUnit').value = appData.settings.discountRatePerUnit !== undefined ? appData.settings.discountRatePerUnit : 0.5;
       
@@ -1488,8 +1488,6 @@
             </div>
           `;
         }
-        
-        let discountHtml = elecData.discount > 0 ? `<br><span class="text-[10px] text-rose-500 font-normal">ส่วนลด -${elecData.discount.toLocaleString()}</span>` : '';
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
@@ -1501,7 +1499,7 @@
             <td class="px-4 py-2 text-center font-bold" id="units-${r.id}">${units}</td>
             <td class="px-4 py-2 text-right">${elecData.base.toLocaleString()}</td>
             <td class="px-4 py-2 text-right text-amber-600">${elecData.ft.toLocaleString()}</td>
-            <td class="px-4 py-2 text-right font-bold text-indigo-900" id="cost-${r.id}">${elecData.total.toLocaleString()} บ.${discountHtml}</td>
+            <td class="px-4 py-2 text-right font-bold text-indigo-900" id="cost-${r.id}">${elecData.total.toLocaleString()} บ.</td>
           </tr>
         `;
       });
@@ -1725,9 +1723,10 @@
       let otherTotal = 0;
       let otherHtml = '';
       otherItems.forEach(item => {
-         if (item.cost !== 0) {
-            otherTotal += item.cost;
-            otherHtml += `<tr><td class="py-2">${item.label || 'อื่นๆ'}</td><td class="py-2 text-center">-</td><td class="py-2 text-right">${item.cost.toLocaleString()}</td></tr>`;
+         let c = parseFloat(item.cost) || 0;
+         if (c !== 0) {
+            otherTotal += c;
+            otherHtml += `<tr><td class="py-2">${item.label || 'อื่นๆ'}</td><td class="py-2 text-center">-</td><td class="py-2 text-right">${c.toLocaleString()}</td></tr>`;
          }
       });
 
@@ -1825,18 +1824,19 @@
         const record = mData[r.id] || {};
         const prevMeter = record.prevMeter !== undefined ? record.prevMeter : r.lastMeter;
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
-        const units = Math.max(0, curMeter - r.lastMeter);
+        const units = Math.max(0, curMeter - prevMeter);
         const elecData = calculateElectricity(units, r.elecPercent || 100);
-        const waterCost = r.waterPrice !== undefined ? r.waterPrice : appData.settings.rateWater;
-        const commonCost = r.hasCommonFee !== false ? appData.settings.rateCommon : 0;
+        const waterCost = r.waterPrice !== undefined ? r.waterPrice : (appData.settings.rateWater || 0);
+        const commonCost = r.hasCommonFee !== false ? (appData.settings.rateCommon || 0) : 0;
         
         let otherItems = record.otherItems || [];
         let otherTotal = 0;
         let oRows = '';
         otherItems.forEach(item => {
-           if (item.cost !== 0) {
-              otherTotal += item.cost;
-              oRows += `<tr><td class="py-0.5">${item.label || 'อื่นๆ'}</td><td class="py-0.5 text-right">${item.cost.toLocaleString()}</td></tr>`;
+           let c = parseFloat(item.cost) || 0;
+           if (c !== 0) {
+              otherTotal += c;
+              oRows += `<tr><td class="py-0.5">${item.label || 'อื่นๆ'}</td><td class="py-0.5 text-right">${c.toLocaleString()}</td></tr>`;
            }
         });
 
@@ -1849,24 +1849,24 @@
         let elecDiscountRow = elecData.discount > 0 ? `<tr><td class="py-0.5 text-rose-600">ส่วนลดค่าไฟฟ้า</td><td class="py-0.5 text-right text-rose-600">-${elecData.discount.toLocaleString()}</td></tr>` : '';
         
         let wTxt = "ค่าน้ำประปา";
-        let cTxt = r.hasCommonFee !== false ? `<tr><td class="py-0.5">ส่วนกลาง/ที่จอดรถ</td><td class="py-0.5 text-right">${commonCost.toLocaleString()}</td></tr>` : '';
+        let cTxt = r.hasCommonFee !== false ? `<tr><td class="py-0.5">ส่วนกลาง</td><td class="py-0.5 text-right">${commonCost.toLocaleString()}</td></tr>` : '';
 
         const qrUrl = appData.settings.bankQrCodeUrl || "";
-        let qrHtml = qrUrl ? `<img src="${qrUrl}" class="w-12 h-12 object-contain rounded bg-white p-0.5 border">` : '';
+        let qrHtml = qrUrl ? `<img src="${qrUrl}" class="w-10 h-10 object-contain rounded bg-white p-0.5 border ml-1">` : '';
         
-        let footerHtml = fText ? `<div class="mt-1.5 p-1 bg-amber-50 rounded border border-amber-200 text-[7px] text-amber-900 whitespace-pre-line leading-tight"><b>เงื่อนไข:</b>\n${fText}</div>` : '';
+        let footerHtml = fText ? `<div class="mt-1 p-1 bg-slate-50 border border-slate-200 rounded text-[8px] text-slate-700 whitespace-pre-line leading-tight"><b>หมายเหตุ:</b>\n${fText}</div>` : '';
 
         html += `
-          <div class="border border-dashed border-slate-400 p-3 flex flex-col justify-between" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid;">
-            <div class="text-center mb-1">
+          <div class="border border-slate-400 p-3 flex flex-col justify-between" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid;">
+            <div class="text-center mb-1 border-b pb-1">
               <h2 class="text-sm font-bold text-slate-800 leading-tight">${appData.settings.dormName}</h2>
               <p class="text-[10px] text-slate-500 leading-tight">ใบแจ้งค่าเช่า ประจำเดือน: ${monthStr}</p>
             </div>
-            <div class="flex justify-between text-[11px] font-bold border-b border-slate-300 pb-1 mb-1 text-indigo-900">
+            <div class="flex justify-between text-[11px] font-bold mb-1 text-indigo-900 bg-indigo-50 px-1 rounded">
                <span>ห้อง: ${r.roomNumber}</span>
                <span class="truncate ml-2 text-right">${tName}</span>
             </div>
-            <table class="w-full text-[10px] text-slate-700 mb-1">
+            <table class="w-full text-[10px] text-slate-700 mb-1 flex-1">
                <tr><td class="py-0.5">${rTxt}</td><td class="py-0.5 text-right">${rentData.rent.toLocaleString()}</td></tr>
                <tr><td class="py-0.5">${eTxt}<br><span class="text-[8px] text-slate-400">มิเตอร์: ${prevMeter} ➔ ${curMeter}</span></td><td class="py-0.5 text-right align-top">${elecData.rawTotal.toLocaleString()}</td></tr>
                ${elecDiscountRow}
@@ -1877,9 +1877,9 @@
             <div class="text-right text-[12px] font-bold text-indigo-700 border-t border-slate-300 pt-1 mt-auto">
                รวมสุทธิ: ${total.toLocaleString()} บาท
             </div>
-            <div class="mt-2 flex justify-between items-center bg-slate-100 p-1.5 rounded border border-slate-200 text-[9px] text-slate-800 leading-tight">
-               <div>
-                  <b>${appData.settings.bankName}</b><br>
+            <div class="mt-1 flex justify-between items-center bg-slate-100 p-1.5 rounded border border-slate-200 text-[9px] text-slate-800 leading-tight">
+               <div class="flex-1">
+                  <b>ชำระเงินที่: ${appData.settings.bankName}</b><br>
                   เลขที่: <span class="font-semibold text-indigo-700">${appData.settings.bankAccNumber}</span><br>
                   ชื่อ: ${appData.settings.bankAccName}
                </div>
@@ -1933,8 +1933,9 @@
       
       if (d.otherItems && d.otherItems.length > 0) {
          d.otherItems.forEach(item => {
-            if (item.cost !== 0) {
-               bodyText += `${lineIdx++}. ${item.label || 'อื่นๆ'}: ${item.cost.toLocaleString()} บ.\n`;
+            let c = parseFloat(item.cost) || 0;
+            if (c !== 0) {
+               bodyText += `${lineIdx++}. ${item.label || 'อื่นๆ'}: ${c.toLocaleString()} บ.\n`;
             }
          });
       }
