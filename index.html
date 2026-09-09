@@ -685,8 +685,8 @@
           appData = createDefaultData();
         }
         
-        if (appData.settings.demoVersion !== "v16") {
-           appData.settings.demoVersion = "v16";
+        if (appData.settings.demoVersion !== "v17") {
+           appData.settings.demoVersion = "v17";
            if (!appData.settings.invoiceFooter) {
                appData.settings.invoiceFooter = "1. ชำระล่าช้ากว่ากำหนด ปรับวันละ 100 บาท\nชำระเงินภายในวันที่ 5 {month}\n2. ย้ายออก ต้องแจ้งล่วงหน้าก่อน 1 เดือน";
            }
@@ -1143,7 +1143,7 @@
 
     function createDefaultData() {
       return {
-        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "", demoVersion: "v16", rateFt: 0.1623, invoiceFooter: "1. ชำระล่าช้ากว่ากำหนด ปรับวันละ 100 บาท\nชำระเงินภายในวันที่ 5 {month}\n2. ย้ายออก ต้องแจ้งล่วงหน้าก่อน 1 เดือน", discountUnitThreshold: 140, discountRatePerUnit: 0.5 },
+        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "", demoVersion: "v17", rateFt: 0.1623, invoiceFooter: "1. ชำระล่าช้ากว่ากำหนด ปรับวันละ 100 บาท\nชำระเงินภายในวันที่ 5 {month}\n2. ย้ายออก ต้องแจ้งล่วงหน้าก่อน 1 เดือน", discountUnitThreshold: 140, discountRatePerUnit: 0.5 },
         rooms: Array.from({length: 16}, (_, i) => {
           let n = String(i + 1); 
           return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [], hasCommonFee: true };
@@ -1489,11 +1489,13 @@
           `;
         }
         
-        let discountHtml = elecData.discount > 0 ? `<br><span class="text-[10px] text-rose-500 font-normal">ส่วนลด -${elecData.discount.toLocaleString()}</span>` : '';
+        // 🟢 เพิ่มข้อมูลส่วนลดที่ขาดหายไปกลับมาโชว์ในตารางมิเตอร์
+        let discountHtml = elecData.discount > 0 ? `<span class="text-rose-500">-${elecData.discount.toLocaleString()}</span>` : '-';
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 border-b">
-            <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td><td class="px-4 py-2">${prevMeter}</td>
+            <td class="px-4 py-2 font-bold">ห้อง ${r.roomNumber}</td>
+            <td class="px-4 py-2">${prevMeter}</td>
             <td class="px-4 py-2"><input type="number" value="${curMeter}" class="w-24 px-2 py-1 border rounded text-sm text-indigo-700 bg-white" onchange="updateSingleMeter('${r.id}', this.value)"></td>
             <td class="px-4 py-2">
               <div id="meterStatus-${r.id}" class="w-36">${meterPhotoHtml}</div>
@@ -1501,7 +1503,8 @@
             <td class="px-4 py-2 text-center font-bold" id="units-${r.id}">${units}</td>
             <td class="px-4 py-2 text-right">${elecData.base.toLocaleString()}</td>
             <td class="px-4 py-2 text-right text-amber-600">${elecData.ft.toLocaleString()}</td>
-            <td class="px-4 py-2 text-right font-bold text-indigo-900" id="cost-${r.id}">${elecData.total.toLocaleString()} บ.${discountHtml}</td>
+            <td class="px-4 py-2 text-right font-medium">${discountHtml}</td>
+            <td class="px-4 py-2 text-right font-bold text-indigo-900" id="cost-${r.id}">${elecData.total.toLocaleString()} บ.</td>
           </tr>
         `;
       });
@@ -1801,6 +1804,8 @@
       
       if (qrUrl) {
          qrImg.src = qrUrl;
+         // 🟢 ขยายขนาด QR Code ในหน้าต่างดูบิล (Modal) ให้ใหญ่เป็น 128px (w-32 h-32)
+         qrImg.className = "w-32 h-32 object-contain rounded bg-white border border-indigo-200 p-1";
          qrBox.classList.remove('hidden');
       } else {
          qrImg.src = "";
@@ -1826,7 +1831,7 @@
         const record = mData[r.id] || {};
         const prevMeter = record.prevMeter !== undefined ? record.prevMeter : r.lastMeter;
         const curMeter = record.curMeter !== undefined ? record.curMeter : r.lastMeter;
-        const units = Math.max(0, curMeter - prevMeter); // 🟢 แก้ไขบัก r.lastMeter เป็น prevMeter ตรงนี้
+        const units = Math.max(0, curMeter - prevMeter);
         const elecData = calculateElectricity(units, r.elecPercent || 100);
         const waterCost = r.waterPrice !== undefined ? r.waterPrice : (appData.settings.rateWater || 0);
         const commonCost = r.hasCommonFee !== false ? (appData.settings.rateCommon || 0) : 0;
@@ -1854,18 +1859,18 @@
         let cTxt = r.hasCommonFee !== false ? `<tr><td class="py-0.5">ส่วนกลาง</td><td class="py-0.5 text-right">${commonCost.toLocaleString()}</td></tr>` : '';
 
         const qrUrl = appData.settings.bankQrCodeUrl || "";
-        // 🟢 ขยาย QR Code ในบิล A4 ให้ใหญ่ขึ้น (w-24 h-24 คือ 96px)
+        // 🟢 ขยาย QR Code ในหน้าพิมพ์ A4 ให้ใหญ่ขึ้น (w-24 h-24 คือ 96px)
         let qrHtml = qrUrl ? `<div class="ml-2 bg-white p-1 border border-slate-300 rounded shadow-sm flex-shrink-0"><img src="${qrUrl}" class="w-24 h-24 object-contain"></div>` : '';
         
-        let footerHtml = fText ? `<div class="mt-1 p-1 bg-slate-50 border border-slate-200 rounded text-[8px] text-slate-700 whitespace-pre-line leading-tight"><b>หมายเหตุ:</b>\n${fText}</div>` : '';
+        let footerHtml = fText ? `<div class="mt-2 p-1.5 bg-amber-50 rounded border border-amber-200 text-[8px] text-amber-900 whitespace-pre-line leading-tight"><b>หมายเหตุ:</b>\n${fText}</div>` : '';
 
         html += `
-          <div class="border border-slate-400 p-3 flex flex-col justify-between" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid;">
+          <div class="border border-slate-400 p-3 flex flex-col justify-between relative" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid;">
             <div class="text-center mb-1 border-b pb-1">
               <h2 class="text-sm font-bold text-slate-800 leading-tight">${appData.settings.dormName}</h2>
               <p class="text-[10px] text-slate-500 leading-tight">ใบแจ้งค่าเช่า ประจำเดือน: ${monthStr}</p>
             </div>
-            <div class="flex justify-between text-[11px] font-bold mb-1 text-indigo-900 bg-indigo-50 px-1 rounded">
+            <div class="flex justify-between text-[11px] font-bold mb-1 text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded">
                <span>ห้อง: ${r.roomNumber}</span>
                <span class="truncate ml-2 text-right">${tName}</span>
             </div>
@@ -1877,13 +1882,13 @@
                ${cTxt}
                ${oRows}
             </table>
-            <div class="text-right text-[12px] font-bold text-indigo-700 border-t border-slate-300 pt-1 mt-auto">
+            <div class="text-right text-[13px] font-bold text-indigo-700 border-t border-slate-300 pt-1 mt-auto">
                รวมสุทธิ: ${total.toLocaleString()} บาท
             </div>
-            <div class="mt-1 flex justify-between items-center bg-slate-100 p-1.5 rounded border border-slate-200 text-[9px] text-slate-800 leading-tight">
+            <div class="mt-2 flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-200 text-[10px] text-slate-800 leading-tight shadow-sm">
                <div class="flex-1">
-                  <b>ชำระเงินที่: ${appData.settings.bankName}</b><br>
-                  เลขที่: <span class="font-semibold text-indigo-700 text-[11px] block my-0.5">${appData.settings.bankAccNumber}</span>
+                  <b class="text-indigo-900">ชำระเงินที่: ${appData.settings.bankName}</b><br>
+                  เลขที่: <span class="font-semibold text-indigo-700 text-[12px] block my-0.5">${appData.settings.bankAccNumber}</span>
                   ชื่อ: ${appData.settings.bankAccName}
                </div>
                ${qrHtml}
