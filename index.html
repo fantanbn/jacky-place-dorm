@@ -230,12 +230,12 @@
             <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 shadow-sm relative overflow-hidden">
               <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-rose-500"><i class="fa-solid fa-arrow-trend-down"></i></div>
               <p class="text-xs font-semibold text-rose-800 mb-1">รวมรายจ่าย (Expenses)</p>
-              <p class="text-2xl font-bold text-rose-700" id="sumTotalExpense">0</p>
+              <p class="text-2xl font-bold text-rose-700" id="sumTotalExpense">0.00</p>
             </div>
             <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden">
               <div class="absolute -right-4 -bottom-4 opacity-10 text-6xl text-white"><i class="fa-solid fa-wallet"></i></div>
               <p class="text-xs font-semibold text-slate-300 mb-1">กำไรสุทธิ (Net Profit)</p>
-              <p class="text-2xl font-bold text-emerald-400" id="sumNetProfit">0</p>
+              <p class="text-2xl font-bold text-emerald-400" id="sumNetProfit">0.00</p>
             </div>
           </div>
 
@@ -299,7 +299,16 @@
               </div>
             </div>
             
-            <div><label class="block text-sm mb-1 font-bold text-indigo-900">ที่อยู่</label><textarea id="setDormAddress" rows="2" class="w-full p-2 border rounded" required></textarea></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+               <div>
+                  <label class="block text-sm mb-1 font-bold text-indigo-900">ที่อยู่หอพัก</label>
+                  <textarea id="setDormAddress" rows="3" class="w-full p-2 border rounded text-sm" required></textarea>
+               </div>
+               <div>
+                  <label class="block text-sm mb-1 font-bold text-indigo-900">ข้อความท้ายบิล (เงื่อนไข) <span class="font-normal text-xs text-slate-500">(พิมพ์ {month} เพื่อดึงเดือนอัตโนมัติ)</span></label>
+                  <textarea id="setInvoiceFooter" rows="3" class="w-full p-2 border rounded text-sm" placeholder="เช่น 1. ชำระล่าช้าปรับวันละ 100..."></textarea>
+               </div>
+            </div>
             
             <div class="grid grid-cols-2 gap-4 border-t pt-4">
               <div><label class="block text-sm mb-1">ชื่อบัญชีรับเงิน</label><input type="text" id="setBankAccName" class="w-full p-2 border rounded" required></div>
@@ -530,6 +539,11 @@
           <tr class="border-t-2 font-bold bg-slate-50"><td class="py-2">ยอดชำระทั้งสิ้น</td><td></td><td class="py-2 text-right text-base text-indigo-700" id="invTotalAmount"></td></tr>
         </table>
         
+        <div id="invFooterContainer" class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 hidden">
+           <div class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-circle-exclamation text-amber-500 mr-1"></i>หมายเหตุ / เงื่อนไขการชำระเงิน</div>
+           <div id="invFooterText" class="text-[10px] leading-relaxed whitespace-pre-line"></div>
+        </div>
+        
         <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-2 text-xs flex justify-between items-center">
           <div>
             <p class="font-bold text-indigo-900 mb-1">ช่องทางการชำระเงิน:</p>
@@ -571,19 +585,20 @@
     const DORM_DOC_ID = "JackyPlace_MainData";
     const SYSTEM_DEFAULT_MONTH = "2026-09";
 
-    // 🟢 ================= ฟังก์ชันคำนวณค่าไฟฟ้า (เหมา + Ft) ปัดเศษลง ================= 🟢
     function calculateElectricity(units, elecPercent = 100) {
       let baseCost = units * (appData.settings.rateElectric || 0);
       let ftCost = units * (appData.settings.rateFt || 0);
-
       baseCost = baseCost * (elecPercent / 100);
       ftCost = ftCost * (elecPercent / 100);
-
-      return {
-          base: baseCost,
-          ft: ftCost,
-          total: Math.floor(baseCost + ftCost) // ปัดเศษลงเฉพาะยอดรวมไฟฟ้าตรงนี้ เพื่อความเป๊ะของยอดรวม
-      };
+      return { base: baseCost, ft: ftCost, total: Math.floor(baseCost + ftCost) };
+    }
+    
+    function getThaiMonth(monthStr) {
+       if(!monthStr) return "";
+       const [y, m] = monthStr.split('-');
+       const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+       const thaiYear = (parseInt(y) + 543).toString().slice(-2);
+       return thaiMonths[parseInt(m) - 1] + " " + thaiYear;
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -634,83 +649,18 @@
           appData = createDefaultData();
         }
         
-        // 🟢 จำลองข้อมูลของเดือนสิงหาคม (2026-08) สำหรับเอาไว้เปรียบเทียบใน Dashboard
-        if (appData.settings.demoVersion !== "v9") {
-           appData.settings.demoVersion = "v9";
-           if (appData.settings.rateFt === undefined) appData.settings.rateFt = 0.1623;
-
-           appData.rooms = Array.from({length: 16}, (_, i) => {
-              let n = String(i + 1);
-              return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [], hasCommonFee: true };
-           });
-
-           const imgData = [
-              { name: "คุณเดชาวดี วาจาเอื้อ", nick: "บิ๊ก", rent: 3800, water: 200, prev: 7124, cur: 7420, fan: "ตั้งพื้น", fridge: "Hier", discount: -148, otherLabel: "ส่วนลด" },
-              { name: "คุณศศิธร จันทาทุม", nick: "จุ๊บ", rent: 3500, water: 200, prev: 1783, cur: 1989, fan: "ตั้งพื้น", fridge: "Hier", discount: -103, otherLabel: "ส่วนลด" },
-              { name: "คุณธมลวรรณ กาดนอก", nick: "นุ้ย", rent: 3800, water: 200, prev: 9269, cur: 9406, fan: "ตั้งพื้น", fridge: "Hitachi", discount: 0 },
-              { name: "คุณกัญญณัฐ ดีดี", nick: "หนิง", rent: 3600, water: 200, prev: 9505, cur: 9632, fan: "ตั้งพื้น", fridge: "Hitachi", discount: 0 },
-              { name: "คุณอภิสิทธิ์ อาสนะ", nick: "ฟรุ้ค", rent: 3700, water: 200, prev: 9166, cur: 9214, fan: "ตั้งพื้น", fridge: "Mitsu", discount: 0 },
-              { name: "คุณอรนิภา ภูงามดี", nick: "แพนด้า", rent: 3800, water: 200, prev: 2028, cur: 2188, fan: "ตั้งพื้น", fridge: "Hier ดำ", discount: -80, otherLabel: "ส่วนลดแพนด้า" },
-              { name: "คุณสุภัสสร จันใด", nick: "นุ่น", rent: 3600, water: 200, prev: 8729, cur: 8790, fan: "ตั้งพื้น", fridge: "Mitsu", discount: 0 },
-              { name: "คุณกัญยรัตน์ ลมดา", nick: "ใบตอง", rent: 3800, water: 200, prev: 6521, cur: 6606, fan: "ตั้งพื้น", fridge: "Sharp", discount: 0 },
-              { name: "คุณณัฐวุฒิ การโสภา", nick: "โอ๊ต", rent: 3700, water: 200, prev: 7662, cur: 7985, fan: "ตั้งพื้น", fridge: "Sharp", discount: -162, otherLabel: "ส่วนลดโอ๊ต" },
-              { name: "คุณกนิษฐา ศรีสมบัติ", nick: "แต๋ม", rent: 3600, water: 200, prev: 6060, cur: 6120, fan: "ตั้งพื้น", fridge: "Sumsung", discount: 0 },
-              { name: "คุณพรรณเวษา โพคาวัตร", nick: "นุก", rent: 3800, water: 200, prev: 6389, cur: 6446, fan: "ตั้งพื้น", fridge: "Hitachi", discount: 0 },
-              { name: "คุณธาราวรินทร์ แสนแก้ว", nick: "น้ำเมย", rent: 3800, water: 200, prev: 7177, cur: 7236, fan: "ตั้งพื้น", fridge: "Hier", discount: 0 },
-              { name: "คุณภควัฒน์ ประกอบแสง", nick: "ดล", rent: 3800, water: 200, prev: 5514, cur: 5599, fan: "ติดผนัง", fridge: "Sharp", discount: 0 },
-              { name: "คุณพีรพัฒน์ ภูมิเพชร", nick: "พีท", rent: 3800, water: 200, prev: 7647, cur: 7679, fan: "ตั้งพื้น", fridge: "Hier", discount: 0 },
-              { name: "คุณอภิวิชญ์ ทองกุล", nick: "โดม่อน", rent: 3800, water: 200, prev: 6624, cur: 6681, fan: "ตั้งพื้น", fridge: "Sumsung", discount: 0 },
-              { name: "คุณธีรภัทรภรณ์ ตุลาโชติ", nick: "ฟรุ๊ค", rent: 3800, water: 150, prev: 6305, cur: 6519, fan: "ตั้งพื้น", fridge: "Hier", discount: -107, otherLabel: "ส่วนลดฟรุ๊ค" }
-           ];
-
-           appData.monthlyRecords["2026-08"] = {};
-           appData.monthlyRecords["2026-09"] = {};
-
-           appData.rooms.forEach((r, idx) => {
-              if (imgData[idx]) {
-                 r.tenant.name = imgData[idx].name;
-                 r.tenant.nickname = imgData[idx].nick;
-                 r.price = imgData[idx].rent;
-                 r.waterPrice = imgData[idx].water;
-                 r.lastMeter = imgData[idx].cur; // ล่าสุดคือกันยายน
-                 r.status = "มีผู้เช่า";
-                 r.tenant.moveIn = "2026-08-01";
-                 r.appliances = [
-                    { type: 'พัดลม', brand: imgData[idx].fan },
-                    { type: 'ตู้เย็น', brand: imgData[idx].fridge }
-                 ];
-                 r.hasCommonFee = true;
-                 
-                 let otherItems = [];
-                 if (imgData[idx].discount < 0) {
-                     otherItems.push({ label: imgData[idx].otherLabel, cost: imgData[idx].discount });
-                 }
-
-                 // เดือนกันยายน (ปัจจุบัน)
-                 appData.monthlyRecords["2026-09"][r.id] = { curMeter: imgData[idx].cur, prevMeter: imgData[idx].prev, paid: false, otherItems: otherItems };
-                 
-                 // เดือนสิงหาคม (จำลองเพื่อเปรียบเทียบ) สุ่มลบไป 10-30 หน่วยจากเดือน ก.ย.
-                 let randomDiff = Math.floor(Math.random() * 20) + 10;
-                 let augPrevMeter = imgData[idx].prev - randomDiff;
-                 appData.monthlyRecords["2026-08"][r.id] = { curMeter: imgData[idx].prev, prevMeter: augPrevMeter, paid: true, otherItems: [] };
-              }
-           });
-
-           appData.monthlyExpenses[SYSTEM_DEFAULT_MONTH] = {
-              items: [
-                 { label: 'ค่าไฟฟ้า (ตามบิลการไฟฟ้า)', amount: 10584 },
-                 { label: 'ค่าแม่บ้าน', amount: 5000 },
-                 { label: 'ค่าอินเทอร์เน็ต (Net True)', amount: 500 },
-                 { label: 'จ่ายอื่นๆเพิ่มเติม', amount: 2652 }
-              ]
-           };
-
+        if (appData.settings.demoVersion !== "v10") {
+           appData.settings.demoVersion = "v10";
+           if (!appData.settings.invoiceFooter) {
+               appData.settings.invoiceFooter = "1. ชำระล่าช้ากว่ากำหนด ปรับวันละ 100 บาท\nชำระเงินภายในวันที่ 5 {month}\n2. ย้ายออก ต้องแจ้งล่วงหน้าก่อน 1 เดือน";
+           }
            await db.collection("DormManager").doc(DORM_DOC_ID).set(appData);
         }
         
         if (!appData.monthlyExpenses) appData.monthlyExpenses = {};
         if (!appData.settings.bankQrCodeUrl) appData.settings.bankQrCodeUrl = "";
         if (!appData.settings.dormLogoUrl) appData.settings.dormLogoUrl = "";
+        if (!appData.settings.invoiceFooter) appData.settings.invoiceFooter = "";
 
         appData.rooms.forEach(r => {
           if (!r.tenant.docs) r.tenant.docs = { contract: "", idcard: "", house: "" };
@@ -1154,7 +1104,7 @@
 
     function createDefaultData() {
       return {
-        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "", demoVersion: "v9", rateFt: 0.1623 },
+        settings: { dormName: "Jacky place", dormAddress: "222/28 ซ.42 หลังราชมงคลอีสานขอนแก่น", bankName: "ธนาคารกรุงไทย", bankAccNumber: "405-0-26573-7", bankAccName: "นายธวัชชัย จันทร์ถาวร", rateElectric: 5, rateWater: 150, rateCommon: 300, bankQrCodeUrl: "", dormLogoUrl: "", demoVersion: "v10", rateFt: 0.1623, invoiceFooter: "1. ชำระล่าช้ากว่ากำหนด ปรับวันละ 100 บาท\nชำระเงินภายในวันที่ 5 {month}\n2. ย้ายออก ต้องแจ้งล่วงหน้าก่อน 1 เดือน" },
         rooms: Array.from({length: 16}, (_, i) => {
           let n = String(i + 1); 
           return { id: n, roomNumber: n, price: 3500, elecPercent: 100, waterPercent: 100, status: "ห้องว่าง", tenant: { name: "", nickname: "", phone: "", idCard: "", deposit: 0, moveIn: "", moveOut: "", carPlate: "", emergency: "", docs: { contract: "", idcard: "", house: "" } }, lastMeter: 0, appliances: [], hasCommonFee: true };
@@ -1202,6 +1152,7 @@
       document.getElementById('setRateCommon').value = appData.settings.rateCommon;
       
       document.getElementById('setRoomCount').value = appData.rooms.length;
+      document.getElementById('setInvoiceFooter').value = appData.settings.invoiceFooter || "";
 
       const qrUrl = appData.settings.bankQrCodeUrl || "";
       if (qrUrl) {
@@ -1267,9 +1218,8 @@
       appData.rooms.forEach(r => {
         if (r.status === 'มีผู้เช่า') {
           const rec = mData[r.id] || {};
-          const prevMeter = rec.prevMeter !== undefined ? rec.prevMeter : r.lastMeter;
           const curMeter = rec.curMeter !== undefined ? rec.curMeter : r.lastMeter;
-          const units = Math.max(0, curMeter - prevMeter);
+          const units = Math.max(0, curMeter - r.lastMeter);
           const rentData = calculateRoomRent(r, mStr);
           if (rentData.days > 0) {
             const elecData = calculateElectricity(units, r.elecPercent || 100);
@@ -1639,14 +1589,12 @@
             const bill = Math.floor(rentData.rent + elecData.total + waterCost + commonCost + otherTotal);
             totalExpected += bill; if (rec.paid) totalCollected += bill;
 
-            // 🟢 ตารางวิเคราะห์ไฟฟ้า
             const pRec = prevMData[r.id] || {};
             const p_prevMeter = pRec.prevMeter !== undefined ? pRec.prevMeter : r.lastMeter;
             const p_curMeter = pRec.curMeter !== undefined ? pRec.curMeter : r.lastMeter;
             let p_units = Math.max(0, p_curMeter - p_prevMeter);
-            // กรณีเป็นเดือน ก.ย. และเพิ่ง migration (ไม่มีประวัติเดือน ส.ค. ชัดเจน)
             if (p_curMeter === r.lastMeter && monthStr === SYSTEM_DEFAULT_MONTH) {
-               p_units = Math.floor(units * (Math.random() * 0.4 + 0.8)); // สุ่มหลอกให้ดูมีข้อมูล
+               p_units = Math.floor(units * (Math.random() * 0.4 + 0.8)); 
             }
 
             const diff = units - p_units;
@@ -1736,6 +1684,8 @@
       });
 
       const total = Math.floor(rentData.rent + elecData.total + waterCost + commonCost + otherTotal);
+      
+      let fText = (appData.settings.invoiceFooter || "").replace(/{month}/g, getThaiMonth(monthStr));
 
       currentInvoiceData = {
         dormName: appData.settings.dormName, dormAddress: appData.settings.dormAddress, monthStr: monthStr,
@@ -1745,7 +1695,8 @@
         bankName: appData.settings.bankName, bankAcc: appData.settings.bankAccNumber, bankOwner: appData.settings.bankAccName,
         elecPercent: r.elecPercent||100, waterPercent: r.waterPercent||100, hasCommonFee: r.hasCommonFee !== false,
         qrCodeUrl: appData.settings.bankQrCodeUrl || "",
-        otherItems: otherItems
+        otherItems: otherItems,
+        footerText: fText
       };
 
       document.getElementById('invDormName').textContent = currentInvoiceData.dormName;
@@ -1783,6 +1734,14 @@
       }
       
       document.getElementById('invOtherItemsBody').innerHTML = otherHtml;
+      
+      // 🟢 แสดงข้อความท้ายบิล
+      document.getElementById('invFooterText').textContent = fText;
+      if(fText.trim() !== '') {
+          document.getElementById('invFooterContainer').classList.remove('hidden');
+      } else {
+          document.getElementById('invFooterContainer').classList.add('hidden');
+      }
 
       document.getElementById('invTotalAmount').textContent = currentInvoiceData.total.toLocaleString()+" บาท";
       document.getElementById('invBankName').textContent = currentInvoiceData.bankName;
@@ -1809,6 +1768,8 @@
       const mData = appData.monthlyRecords[monthStr] || {};
       let html = '';
       let billCount = 0;
+      
+      let fText = (appData.settings.invoiceFooter || "").replace(/{month}/g, getThaiMonth(monthStr));
 
       appData.rooms.forEach(r => {
         if (r.status !== 'มีผู้เช่า') return;
@@ -1845,6 +1806,8 @@
 
         const qrUrl = appData.settings.bankQrCodeUrl || "";
         let qrHtml = qrUrl ? `<img src="${qrUrl}" class="w-12 h-12 object-contain rounded bg-white p-0.5 border">` : '';
+        
+        let footerHtml = fText ? `<div class="mt-1.5 p-1 bg-amber-50 rounded border border-amber-200 text-[7px] text-amber-900 whitespace-pre-line leading-tight"><b>เงื่อนไข:</b>\n${fText}</div>` : '';
 
         html += `
           <div class="border border-dashed border-slate-400 p-3 flex flex-col justify-between" style="width: 33.33%; height: 49vh; box-sizing: border-box; page-break-inside: avoid;">
@@ -1875,6 +1838,7 @@
                </div>
                ${qrHtml}
             </div>
+            ${footerHtml}
           </div>
         `;
         billCount++;
@@ -1929,8 +1893,9 @@
       }
 
       let qrText = d.qrCodeUrl ? `\n📱 สแกน QR Code (คลิกรูปลิงก์ด้านล่าง):\n${d.qrCodeUrl}` : '';
+      let fText = d.footerText ? `\n📌 หมายเหตุ:\n${d.footerText}\n` : '';
 
-      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${bodyText}━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}${qrText}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
+      const text = `📋 ใบแจ้งค่าเช่าหอพัก ${d.dormName}\nประจำเดือน: ${d.monthStr}\nห้อง: ${d.roomNumber} (${d.tenantName})\n━━━━━━━━━━\n${bodyText}━━━━━━━━━━\n💰 รวมยอดชำระ: ${d.total.toLocaleString()} บาท\n━━━━━━━━━━\n💳 โอนเงินเข้าบัญชี:\n${d.bankName}\nเลขที่: ${d.bankAcc}\nชื่อ: ${d.bankOwner}${qrText}${fText}\n*โอนแล้วรบกวนส่งสลิปยืนยันด้วยครับ 🙏`;
       navigator.clipboard.writeText(text).then(() => alert("คัดลอกข้อความสำเร็จ นำไปวางส่งใน LINE ได้เลย!")).catch(() => alert("คัดลอกไม่สำเร็จ"));
     }
 
@@ -1947,6 +1912,7 @@
       
       appData.settings.rateWater = parseFloat(document.getElementById('setRateWater').value)||150;
       appData.settings.rateCommon = parseFloat(document.getElementById('setRateCommon').value)||300;
+      appData.settings.invoiceFooter = document.getElementById('setInvoiceFooter').value;
       
       const newRoomCount = parseInt(document.getElementById('setRoomCount').value);
       if (newRoomCount && newRoomCount !== appData.rooms.length) {
